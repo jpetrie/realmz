@@ -1,0 +1,1 @@
+#include "variables.h"#include "prototypes.h"/******************************* music ************************/void music(int16_t playlist){}

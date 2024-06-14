@@ -1,0 +1,11 @@
+*.o
+*.xSYM
+*.SYM
+*.dSYM
+.DS_Store
+.*.swp
+.*.swo
+
+build
+deployment
+*.code-workspace

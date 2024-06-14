@@ -1,0 +1,8 @@
+# Ignore the built apps.  We should move to a separate deployment area.
+Realmz\ Classic
+Realmz\ Debug*
+Realmz\ PPC
+Realmz\ 68k
+*.app
+Character\ Files
+Data\ Files

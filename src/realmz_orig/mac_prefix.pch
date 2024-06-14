@@ -1,0 +1,138 @@
+/** mac_prefix.pch
+ *
+ * Prefix header for Mac (Classic and Carbon) defines.
+ *
+ * Author: David Riley
+ *
+ * Revision history:
+ *  2013-12-04: Initial revision.
+ */
+ 
+#if defined(REALMZ_CLASSIC)
+
+#include <MacHeaders.h>
+
+#define __BIG_ENDIAN__
+
+// If we're not Carbon, we're big-endian already.  No swap.
+#define SWAP_BIG16(x) (x)
+#define SWAP_BIG32(x) (x)
+
+//#define SetPortDialogPort(x) SetPort(x)
+#define GetQDGlobalsThePort() ((CGrafPtr)qd.thePort)
+#define GetQDGlobalsScreenBits(x) (*(x) = qd.screenBits)
+#define GetPortBitMapForCopyBits(x) ((BitMap *)&(((GrafPtr)(x))->portBits))
+#define GetDialogFromWindow(x) (DialogPtr)(x)
+#define GetPortPixMap(x) &(((CGrafPtr)(x))->portPixMap);
+#define GetDialogPort(x) ((CGrafPtr)&(((DialogPeek)(x))->window.port))
+
+#define QDFlushPortBuffer
+
+#define SetPortDialogPort SetPort
+
+#if ! TARGET_CPU_68K
+#define SetSoundVol(x) SetDefaultOutputVolume(x << 16)
+
+inline void GetSoundVol(short *x) {
+    long v;
+    GetDefaultOutputVolume(&v);
+    *x = v >> 16;
+}
+#endif
+
+#define GetPortTextFont(x) ((x)->txFont)
+#define GetPortTextFace(x) ((x)->txFace)
+#define GetPortTextSize(x) ((x)->txSize)
+#define GetPortTextMode(x) ((x)->txMode)
+
+#define mac_fopen fopen
+
+//#define GetWindowPort(x) (x)
+
+#elif defined(CARBON) /* CARBON */
+
+#include <Carbon/Carbon.h>
+#include <libkern/OSByteOrder.h>
+
+#define SWAP_BIG16(x) OSSwapBigToHostInt16(x)
+#define SWAP_BIG32(x) OSSwapBigToHostInt32(x)
+
+#define GetNewWindow GetNewCWindow
+
+#undef PRAGMA_ALIGN_SUPPORTED
+#define PRAGMA_ALIGN_SUPPORTED 0
+#define TrapAvailable(x) 1
+
+static inline void PtoCstr(unsigned char *x) {
+	unsigned char len = x[0];
+	
+	while(len--) {
+		x[0] = x[1];
+		x++;
+	}
+	x[0] = '\0';
+}
+
+static inline void CtoPstr(char *x) {
+	unsigned char len = 0;
+	unsigned char i = 0;
+	while(x[i++] != '\0') {};
+	len = i;
+	while(i--) {
+		x[i] = x[i - 1];
+	}
+	x[0] = len - 1;
+}
+
+// Adapted for Carbon use.
+static inline OSErr GetVInfo(int16_t drvNum,
+							StringPtr volName,
+							int16_t *vRefNum,
+							int32_t *freeBytes) {
+	HVolumeParam vp;
+	vp.ioNamePtr = volName;
+	vp.ioVRefNum = 0;
+	vp.ioVolIndex = 0;
+	OSErr err = PBHGetVInfoSync((HParamBlockRec *)&vp);
+	*freeBytes = (uint16_t)vp.ioVAlBlkSiz * (uint16_t)vp.ioVFrBlk;
+	return err;
+}	
+
+// Renamed in Carbon.
+#define EnableItem EnableMenuItem
+#define DisableItem DisableMenuItem
+#define CheckItem CheckMenuItem
+#define CountMItems CountMenuItems
+
+// Obsolete and unnecessary for Carbon, can be ignored.
+#define SystemTask()
+#define SystemClick(e,w)
+#define DIBadMount(p,m)
+static inline int OpenDeskAcc(const char *s) { return 0; }
+
+// Might be worth resurrecting.
+#define SetSoundVol(v)
+#define GetSoundVol(v)
+
+// Used in the gamma fade function, will be replaced.
+static inline int PBControlSync(void *x) { return noErr; }
+static inline int PBStatusSync(void *x) { return noErr; }
+
+#endif /* CARBON */
+
+#include "structs.h"
+#include "variables.h"
+
+
+
+
+
+static inline void rintel2moto(Rect *r) {
+	r->top = SWAP_BIG16(r->top);
+	r->left = SWAP_BIG16(r->left);
+	r->bottom = SWAP_BIG16(r->bottom);
+	r->right = SWAP_BIG16(r->right);
+}
+
+#include "convert.h"
+
