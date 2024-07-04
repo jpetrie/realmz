@@ -11,47 +11,41 @@
 #include <resource_file/QuickDrawFormats.hh>
 #include "ResourceManager.h"
 
- ResourceManager_Rect rect_from_data(StringReader &data) {
+ResourceManager_Rect rect_from_data(StringReader &data) {
 	ResourceManager_Rect r;
 	r.top = data.get_u16b();
 	r.left = data.get_u16b();
 	r.bottom = data.get_u16b();
 	r.right = data.get_u16b();
 	return r;
- }
- 
+}
+
 static int16_t resError = noErr;
 
 class ResourceManager {
 public:
 	ResourceManager() {}
 
-	void use(ResourceFile rf);
-	std::shared_ptr<const ResourceFile::Resource> find_resource(int32_t type, int16_t id);
-	std::shared_ptr<const ResourceFile> get_current_res_file();
+	void use(std::shared_ptr<const ResourceFile> rf) {
+		this->resFiles.push_front(rf);
+	}
+
+	std::shared_ptr<const ResourceFile::Resource> find_resource(int32_t type, int16_t id) {
+		for (const auto& rf : this->resFiles) {
+			try {
+				return rf->get_resource(type, id);
+			} catch (const std::out_of_range&) { }
+		}
+		return nullptr;
+	}
+
+	std::shared_ptr<const ResourceFile> get_current_res_file() {
+		return this->resFiles.front();
+	}
 
 private:
-	std::deque<ResourceFile> resFiles;
-	std::shared_ptr<const ResourceFile> curResFile;
+	std::deque<std::shared_ptr<const ResourceFile>> resFiles;
 };
-
-void ResourceManager::use(ResourceFile rf) {
-	this->resFiles.push_front(rf);
-	this->curResFile = std::make_shared<const ResourceFile>(rf);
-}
-
-std::shared_ptr<const ResourceFile> ResourceManager::get_current_res_file() {
-	return this->curResFile;
-}
-
-std::shared_ptr<const ResourceFile::Resource> ResourceManager::find_resource(int32_t type, int16_t id) {
-	if (this->curResFile->resource_exists(type, id)) return this->curResFile->get_resource(type, id);
-	// std::for_each(this->resFiles.begin(), this->resFiles.end(), [type, id](const ResourceFile &rf) {
-	// 	if (rf.resource_exists(type, id))
-	// 		return rf.get_resource(type, id);
-	// });
-	return NULL;
-}
 
 static ResourceManager rm;
 
@@ -61,6 +55,24 @@ void *ResourceManager_GetResource(int32_t theType, int16_t theID) {
 	resError = resNotFound;
 	return NULL;
 }
+
+void ResourceManager_get_Str255_from_strN(char* out, int16_t res_id, uint16_t index) {
+	try {
+		auto res = rm.find_resource(RESOURCE_TYPE_STRN, res_id);
+		auto decoded = ResourceFile::decode_STRN(res);
+		const auto& str = decoded.strs.at(index);
+		if (str.size() > 0xFF) {
+			out[0] = 0; // This should be impossible; the STR# format has a single-byte size field per string
+		} else {
+			out[0] = str.size();
+			memcpy(&out[1], str.data(), str.size());
+			memset(&out[str.size() + 1], 0, 0xFF - str.size());
+		}
+	} catch (const std::out_of_range&) {
+		out[0] = 0;
+	}
+}
+
 struct PixelPatternResourceHeader {
   be_uint16_t type;
   be_uint32_t pixel_map_offset;
@@ -71,8 +83,11 @@ struct PixelPatternResourceHeader {
   uint8_t monochrome_pattern[8];
 } __attribute__((packed));
 
-ResourceManager_PixPat ResourceManager_get_ppat_resource(uint16_t patID) {
+ResourceManager_PixPat ResourceManager_get_ppat_resource(int16_t patID) {
 	auto resource = rm.find_resource(RESOURCE_TYPE_ppat, patID);
+	if (!resource) {
+		throw std::runtime_error(string_printf("Resource ppat:%hd was not found", patID));
+	}
 	StringReader r(resource->data.data(), resource->data.size());
 	const auto& header = r.get<PixelPatternResourceHeader>();
 	const auto& pixmap_header = r.pget<PixelMapHeader>(header.pixel_map_offset + 4);
@@ -96,7 +111,7 @@ ResourceManager_PixPat ResourceManager_get_ppat_resource(uint16_t patID) {
 	};
 }
 
-ResourceManager_Picture ResourceManager_get_pict_resource(uint16_t picID) {
+ResourceManager_Picture ResourceManager_get_pict_resource(int16_t picID) {
 	auto resource = rm.find_resource(RESOURCE_TYPE_PICT, picID);
 	ResourceFile::DecodedPictResource p = rm.get_current_res_file()->decode_PICT(resource);
 
@@ -205,14 +220,19 @@ ResourceManager_Sound ResourceManager_get_snd_resource(int16_t soundID) {
 int16_t ResourceManager_OpenResFile(const char filename[256], signed char permission) {
 	auto fn = std::string(filename);
 	std::replace(fn.begin(), fn.end(), ':', '/');
-	auto path = std::string("/Users/applegatedt/workspace/realmz/deployment/Realmz");
-	path.append(fn);
-	path.append("/..namedfork/rsrc");
-	if (!std::filesystem::exists(path)) {
+
+	// Try looking in . first (this is what the compiled game will do)
+	try {
+		rm.use(std::make_shared<ResourceFile>(parse_resource_fork(load_file(fn + ".rsrc"))));
+		return 0;
+	} catch (const cannot_open_file&) {
+	}
+
+	// Try looking in base/Realmz next (this happens when building in the git repo)
+	try {
+		rm.use(std::make_shared<ResourceFile>(parse_resource_fork(load_file("base/Realmz/" + fn + ".rsrc"))));
+		return 0;
+	} catch (const cannot_open_file&) {
 		return -1;
 	}
-	auto f = load_file(path);
-	ResourceFile rf = parse_resource_fork(f);
-	rm.use(rf);
-	return 0;
 }

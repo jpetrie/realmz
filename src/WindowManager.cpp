@@ -57,7 +57,7 @@ static void PrintDebugInfo(void) {
 	int i, n;
 	char text[1024];
 
-	SDL_LogSetPriority(SDL_LOG_CATEGORY_APPLICATION, SDL_LOG_PRIORITY_INFO);
+	SDL_SetLogPriority(SDL_LOG_CATEGORY_APPLICATION, SDL_LOG_PRIORITY_INFO);
 	n = SDL_GetNumVideoDrivers();
 	if (n == 0) {
 		SDL_Log("No built-in video drivers\n");
@@ -125,7 +125,7 @@ WindowPtr WindowManager_CreateNewWindow(Rect bounds, char *title, bool visible, 
 		return NULL;
 	}
 
-	SDL_Renderer *renderer = SDL_CreateRenderer(window, "opengl", 0);
+	SDL_Renderer *renderer = SDL_CreateRenderer(window, "opengl");
 
 	if (renderer == NULL) {
 		SDL_Log("could not create renderer: %s\n", SDL_GetError());
