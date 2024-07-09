@@ -16,6 +16,9 @@ set(CMAKE_CXX_STANDARD_REQUIRED True)
 #     add_compile_options(-Wall -Wextra -Werror)
 # endif()
 
+# TODO(martin): This manual path modification is necessary because phosg and
+# resource_file are manually installed to these directories. We should use the
+# default install path for those libraries instead and remove this hack.
 set(LOCAL_INCLUDE_DIR "/usr/local/include")
 set(LOCAL_LIB_DIR "/usr/local/lib")
 list(APPEND CMAKE_PREFIX_PATH ${LOCAL_LIB_DIR})
