@@ -9,3 +9,9 @@
 build
 deployment
 *.code-workspace
+
+CMakeCache.txt
+CMakeFiles
+Makefile
+cmake_install.cmake
+realmz

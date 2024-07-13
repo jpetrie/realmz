@@ -123,7 +123,8 @@ static inline void rintel2moto(Rect *r) {
 
 #define transparent 36
 
-#define kPreferencesFolderType "pref"
+// "pref"
+#define kPreferencesFolderType 0x70726566
 #define kDontCreateFolder FALSE
 // https://developer.apple.com/documentation/coreservices/1389331-anonymous/konsystemdisk
 #define kOnSystemDisk -32768L
@@ -132,11 +133,11 @@ static inline void rintel2moto(Rect *r) {
 
 #define userItem 0
 
-#define centerMainScreen 0x280A;
+#define centerMainScreen 0x280A
 
 static inline void PtoCstr(Str255 x) {
     unsigned char len = x[0];
-    
+
     while(len--) {
         x[0] = x[1];
         x++;
@@ -261,7 +262,7 @@ typedef struct {
 typedef OSType SFTypeList[4];
 
 typedef struct {
-    
+
 } StScrpRec;
 typedef StScrpRec *StScrpPtr, **StScrpHandle;
 
@@ -397,7 +398,7 @@ QDErr NewGWorld(GWorldPtr *offscreenGWorld, int16_t pixelDepth, const Rect *boun
                 GDHandle aGDevice, GWorldFlags flags);
 void SetGWorld(CGrafPtr port, GDHandle gdh);
 void PenSize(int16_t width, int16_t height);
- 
+
 typedef struct OpaqueGammaInfo  **GammaRef;
 // ----------
 // Fade types
@@ -542,6 +543,8 @@ static inline void MoveControlByID(int16_t id, WindowPtr dlg, int16_t dx, int16_
     GetControlBounds(h, &r);
     MoveControl(h, r.left + dx, r.top + dy);
 }
+
+void InitRealmzCocoa();
 
 #include "structs.h"
 #include "variables.h"

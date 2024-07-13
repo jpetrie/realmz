@@ -58,7 +58,7 @@ void GetSoundVol(short *x) {
 }
 
 void BackColor(uint32_t color) {
-    
+
 }
 
 void BackPixPat(PixPatHandle ppat) {
@@ -66,11 +66,11 @@ void BackPixPat(PixPatHandle ppat) {
 }
 
 void BitClr(void *bytePtr, uint32_t bitNum) {
-    
+
 }
 
 void BitSet(void *bytePtr, int32_t bitNum) {
-    
+
 }
 
 
@@ -79,23 +79,23 @@ Boolean BitTst(const void *bytePtr, int32_t bitNum) {
 }
 
 void CheckItem(MenuHandle theMenu, uint16_t item, Boolean checked) {
-    
+
 }
 
 UInt16 CurResFile(void) {
-    return 0;
+    return ResourceManager_CurResFile();
 }
 
 void DetachResource(Handle theResource) {
-    
+
 }
 
 void DisableItem(MenuHandle theMenu, uint16_t item) {
-    
+
 }
 
 void DisposeDialog(DialogPtr theDialog) {
-    
+
 }
 
 void DrawDialog(DialogPtr theDialog) {
@@ -103,19 +103,19 @@ void DrawDialog(DialogPtr theDialog) {
 }
 
 void DrawMenuBar(void) {
-    
+
 }
 
 void DrawString(ConstStr255Param s) {
-    
+
 }
 
 void EnableItem(MenuHandle theMenu, uint16_t item) {
-    
+
 }
 
 void EraseRect(const Rect *r) {
-    
+
 }
 
 Boolean IsColorGammaAvailable(void) {
@@ -136,7 +136,7 @@ void FlushEvents (uint16_t whichMask, uint16_t stopMask) {
 }
 
 void ForeColor(uint32_t color) {
-    
+
 }
 
 WindowPtr FrontWindow(void) {
@@ -144,15 +144,15 @@ WindowPtr FrontWindow(void) {
 }
 
 void DrawPicture(PicHandle myPicture, const Rect *dstRect) {
-    
+
 }
 
 void GetBackColor(RGBColor *color) {
-    
+
 }
 
 void GetForeColor(RGBColor *color) {
-    
+
 }
 
 CCrsrHandle GetCCursor(uint16_t crsrID) {
@@ -172,7 +172,7 @@ GDHandle GetGDevice(void) {
 }
 
 void GetGWorld(CGrafPtr *port, GDHandle *gdh) {
-    
+
 }
 
 PixMapHandle GetGWorldPixMap(GWorldPtr offscreenGWorld) {
@@ -191,12 +191,12 @@ GDHandle GetMainDevice(void) {
     gDevice.gdPMap = &gdPixMapPtr;
 
     gDevicePtr = &gDevice;
-    
+
     return &gDevicePtr;
 }
 
 void GetMenuItemText(MenuHandle theMenu, uint16_t item, Str255 itemString) {
-    
+
 }
 
 DialogPtr GetNewDialog(uint16_t dialogID, void *dStorage, WindowPtr behind) {
@@ -205,7 +205,7 @@ DialogPtr GetNewDialog(uint16_t dialogID, void *dStorage, WindowPtr behind) {
     cpyRect(&d.bounds, &bounds);
     ResourceManager_DialogItem *dItems;
     uint16_t numItems = ResourceManager_get_ditl_resources(d.ditlID, &dItems);
-    WindowPtr w = WindowManager_CreateNewWindow(bounds, "New Dialog", d.visible, d.wDefID, 
+    WindowPtr w = WindowManager_CreateNewWindow(bounds, "New Dialog", d.visible, d.wDefID,
                                                 behind, d.dismissable, d.refCon, numItems, dItems);
     return w;
 }
@@ -254,11 +254,11 @@ PixPatHandle GetPixPat(uint16_t patID) {
 }
 
 void GetPort(GrafPtr *port) {
-    
+
 }
 
 void UseRefFile(int16_t refNum) {
-    
+
 }
 
 Handle Get1Resource(ResType theType, int16_t theID) {
@@ -271,35 +271,35 @@ Handle Get1Resource(ResType theType, int16_t theID) {
 }
 
 void HLockHi(Handle h) {
-    
+
 }
 
 void BlockMove(const void *srcPtr, void *destPtr, Size byteCount) {
-    
+
 }
 
 void ReleaseResource(Handle theResource) {
-    
+
 }
 
 void HLock(Handle h) {
-    
+
 }
 
 void HUnlock(Handle h) {
-    
+
 }
 
 void BeginUpdate(WindowPtr theWindow) {
-    
+
 }
 
 void GetDialogItem(DialogPtr theDialog, short itemNo, short *itemType, Handle *item, Rect *box) {
-    
+
 }
 
 void TextFace(int16_t face) {
-    
+
 }
 
 Boolean IsDialogEvent(const EventRecord *theEvent) {
@@ -319,7 +319,7 @@ int16_t LoWord(int32_t x) {
 }
 
 void SetPt(Point *pt, int16_t h, int16_t v) {
-    
+
 }
 
 int16_t DIBadMount(Point where, int32_t evtMessage) {
@@ -335,7 +335,7 @@ int16_t FindWindow(Point thePoint, WindowPtr *theWindow) {
 }
 
 void HiliteMenu(int16_t menuID) {
-    
+
 }
 
 int32_t MenuSelect(Point startPt) {
@@ -343,7 +343,7 @@ int32_t MenuSelect(Point startPt) {
 }
 
 void GetIndString(Str255 theString, int16_t strListID, int16_t index) {
-    
+    ResourceManager_get_Str255_from_strN(&theString[0], strListID, index);
 }
 
 int16_t StringWidth(ConstStr255Param s) {
@@ -355,15 +355,15 @@ MenuHandle GetMenu(int16_t resourceID) {
 }
 
 void AppendMenu(MenuHandle menu, ConstStr255Param data) {
-    
+
 }
 
 void SetItemIcon(MenuHandle theMenu, int16_t item, int16_t iconIndex) {
-    
+
 }
 
 void GetMouse(Point *mouseLoc) {
-    
+
 }
 
 int32_t PopUpMenuSelect(MenuHandle menu, int16_t top, int16_t left, int16_t popUpItem) {
@@ -371,15 +371,15 @@ int32_t PopUpMenuSelect(MenuHandle menu, int16_t top, int16_t left, int16_t popU
 }
 
 void DeleteMenu(int16_t menuID) {
-    
+
 }
 
 void LineTo(int16_t h, int16_t v) {
-    
+
 }
 
 void DisposeWindow(WindowPtr theWindow) {
-    
+
 }
 
 ControlHandle GetNewControl(int16_t controlID, WindowPtr owner) {
@@ -387,23 +387,23 @@ ControlHandle GetNewControl(int16_t controlID, WindowPtr owner) {
 }
 
 void MoveControl(ControlHandle theControl, int16_t h, int16_t v) {
-    
+
 }
 
 void BringToFront(WindowPtr theWindow) {
-    
+
 }
 
 void PenMode(int16_t mode) {
-    
+
 }
 
 void GetDialogItemText(Handle item, Str255 text) {
-    
+
 }
 
 void ParamText(ConstStr255Param param0, ConstStr255Param param1, ConstStr255Param param2, ConstStr255Param param3) {
-    
+
 }
 
 OSErr FSMakeFSSpec(int16_t vRefNum, int32_t dirID, ConstStr255Param fileName, FSSpecPtr spec) {
@@ -435,7 +435,7 @@ int16_t GetControlMaximum(ControlHandle theControl) {
 }
 
 void ScrollRect(const Rect *r, int16_t dh, int16_t dv, RgnHandle updateRgn) {
-    
+
 }
 
 int16_t TrackControl(ControlHandle theControl, Point thePoint, ProcPtr actionProc) {
@@ -443,24 +443,24 @@ int16_t TrackControl(ControlHandle theControl, Point thePoint, ProcPtr actionPro
 }
 
 void SetControlValue(ControlHandle theControl, int16_t theValue) {
-    
+
 }
 
 void CopyBits(const BitMap *srcBits, const BitMap *dstBits, const Rect *srcRect, const Rect *dstRect, int16_t mode,
               RgnHandle maskRgn) {
-    
+
 }
 
 void PenPixPat(PixPatHandle ppat) {
-    
+
 }
 
 void SelectDialogItemText(DialogPtr theDialog, int16_t itemNo, int16_t strtSel, int16_t endSel) {
-    
+
 }
 
 void SetDialogItemText(Handle item, ConstStr255Param text) {
-    
+
 }
 
 RgnHandle NewRgn(void) {
@@ -468,7 +468,7 @@ RgnHandle NewRgn(void) {
 }
 
 void RectRgn(RgnHandle rgn, const Rect *r) {
-    
+
 }
 
 int32_t DragGrayRgn(RgnHandle theRgn, Point startPt, const Rect *boundsRect, const Rect *slopRect,
@@ -485,7 +485,7 @@ Boolean PtInRect(Point pt, const Rect *r) {
 }
 
 void GetResInfo(Handle theResource, int16_t *theID, ResType *theType, Str255 name) {
-    
+
 }
 
 int16_t GetResAttrs(Handle theResource) {
@@ -493,19 +493,19 @@ int16_t GetResAttrs(Handle theResource) {
 }
 
 void SetResAttrs(Handle theResource, int16_t attrs) {
-    
+
 }
 
 void AddResource(Handle theData, ResType theType, int16_t theID, ConstStr255Param name) {
-    
+
 }
 
 void ChangedResource(Handle theResource) {
-    
+
 }
 
 void WriteResource(Handle theResource) {
-    
+
 }
 
 Handle GetResource(ResType theType, int16_t theID) {
@@ -521,15 +521,15 @@ Handle GetResource(ResType theType, int16_t theID) {
 }
 
 void RemoveResource(Handle theResource) {
-    
+
 }
 
 void ExitToShell(void) {
-    
+
 }
 
 void UpdateResFile(int16_t refNum) {
-    
+
 }
 
 OSErr SndDoImmediate(SndChannelPtr chan, const SndCommand *cmd) {
@@ -542,11 +542,11 @@ OSErr SndPlay(SndChannelPtr chan, Handle sndHdl, Boolean async) {
 }
 
 void LocalToGlobal(Point *pt) {
-    
+
 }
 
 void GlobalToLocal(Point *pt) {
-    
+
 }
 
 int16_t FindControl(Point thePoint, WindowPtr theWindow, ControlHandle *theControl) {
@@ -554,7 +554,7 @@ int16_t FindControl(Point thePoint, WindowPtr theWindow, ControlHandle *theContr
 }
 
 void BlockMoveData(const void *srcPtr, void *dstPtr, Size byteCount) {
-    
+
 }
 
 int16_t CountResources(ResType theType) {
@@ -562,15 +562,11 @@ int16_t CountResources(ResType theType) {
 }
 
 void CloseResFile(int16_t refNum) {
-    
+
 }
 
 int16_t Random(void) {
     return 0;
-}
-
-void DisposeHandle(Handle h) {
-    
 }
 
 int16_t OpenDeskAcc(ConstStr255Param deskAccName) {
@@ -578,23 +574,23 @@ int16_t OpenDeskAcc(ConstStr255Param deskAccName) {
 }
 
 void SetItemMark(MenuHandle theMenu, int16_t item, int16_t markChar) {
-    
+
 }
 
 void DisposeCCursor(CCrsrHandle cCrsr) {
-    
+
 }
 
 void SelectWindow(WindowPtr theWindow) {
-    
+
 }
 
 void EndUpdate(WindowPtr theWindow) {
-    
+
 }
 
 void InsertMenu(MenuHandle theMenu, uint16_t beforeID) {
-    
+
 }
 
 Boolean LockPixels(PixMapHandle pm) {
@@ -618,11 +614,11 @@ int16_t CountMItems(MenuHandle theMenu) {
 }
 
 void ModalDialog(ModalFilterProcPtr filterProc, short *itemHit) {
-    
+
 }
 
 void MoveTo(int16_t h, int16_t v) {
-    
+
 }
 
 void MoveWindow (WindowPtr theWindow, uint16_t hGlobal, uint16_t vGlobal, Boolean front) {
@@ -631,7 +627,7 @@ void MoveWindow (WindowPtr theWindow, uint16_t hGlobal, uint16_t vGlobal, Boolea
 
 void CopyMask(const BitMap *srcBits, const BitMap *maskBits, const BitMap *dstBits, const Rect *srcRect, const Rect *maskRect,
               const Rect *dstRect) {
-    
+
 }
 
 QDErr NewGWorld(GWorldPtr *offscreenGWorld, int16_t pixelDepth, const Rect *boundsRect, CTabHandle cTable,
@@ -646,7 +642,7 @@ QDErr NewGWorld(GWorldPtr *offscreenGWorld, int16_t pixelDepth, const Rect *boun
 }
 
 void NumToString(int32_t theNum, Str255 theString) {
-    
+
 }
 
 void OffsetRect(Rect *r, uint16_t dh, uint16_t dv) {
@@ -657,19 +653,19 @@ void OffsetRect(Rect *r, uint16_t dh, uint16_t dv) {
 }
 
 void PenSize(int16_t width, int16_t height) {
-    
+
 }
 
 void RGBBackColor(const RGBColor *color) {
-    
+
 }
 
 void RGBForeColor(const RGBColor *color) {
-    
+
 }
 
 void SetCCursor(CCrsrHandle cCrsr) {
-    
+
 }
 
 OSErr SetDefaultOutputVolume(uint32_t level) {
@@ -681,43 +677,23 @@ OSErr SetDepth (GDHandle aDevice, uint16_t depth, uint16_t whichFlags, uint16_t 
 }
 
 void SetGWorld(CGrafPtr port, GDHandle gdh) {
-    
+
 }
 
 int16_t ResError(void) {
     return 0;
 }
 
-void HNoPurge(Handle h) {
-    
-}
-
-Size GetHandleSize(Handle h) {
-    return 0;
-}
-
-void SetHandleSize(Handle h, Size newSize) {
-    
-}
-
-OSErr MemError(void) {
-    return 0;
-}
-
-void HPurge(Handle h) {
-    
-}
-
 void SetMenuBar(Handle menuList) {
-    
+
 }
 
 void SetMenuItemText(MenuHandle theMenu, uint16_t item, ConstStr255Param itemString) {
-    
+
 }
 
 void SetPort(GrafPtr port) {
-    
+
 }
 
 void SetRect(Rect *r, uint16_t left, uint16_t top, uint16_t right, uint16_t bottom) {
@@ -728,7 +704,7 @@ void SetRect(Rect *r, uint16_t left, uint16_t top, uint16_t right, uint16_t bott
 }
 
 void ShowWindow(WindowPtr theWindow) {
-    
+
 }
 
 void SizeWindow(CWindowPtr theWindow, uint16_t w, uint16_t h, Boolean fUpdate) {
@@ -750,31 +726,31 @@ OSErr StartFading( GammaRef *returnedInitialState ) {
 }
 
 void StopFading( GammaRef initialState, Boolean restore ) {
-    
+
 }
 
 void StringToNum(ConstStr255Param theString, int32_t *theNum) {
-    
+
 }
 
 void SysBeep(uint16_t duration) {
-    
+
 }
 
 void SystemTask(void) {
-    
+
 }
 
 void TextFont(uint16_t font) {
-    
+
 }
 
 void TextMode(int16_t mode) {
-    
+
 }
 
 void TextSize(uint16_t size) {
-    
+
 }
 
 uint32_t TickCount(void) {
@@ -782,11 +758,11 @@ uint32_t TickCount(void) {
 }
 
 void UnlockPixels(PixMapHandle pm) {
-    
+
 }
 
 void PaintRect(const Rect *r) {
-    
+
 }
 
 Boolean StillDown(void) {
@@ -794,15 +770,15 @@ Boolean StillDown(void) {
 }
 
 void SystemClick(const EventRecord *theEvent, WindowPtr theWindow) {
-    
+
 }
 
 void ObscureCursor(void) {
-    
+
 }
 
 void UseResFile(int16_t refNum) {
-    
+    ResourceManager_UseResFile(refNum);
 }
 
 Boolean WaitNextEvent(int16_t eventMask, EventRecord *theEvent, uint32_t sleep, RgnHandle mouseRgn) {
@@ -818,7 +794,7 @@ OSErr DisposeCIcon(CIconHandle theIcon) {
 }
 
 void InsetRect(Rect *r, int16_t dh, int16_t dv) {
-    
+
 }
 
 Boolean SectRect(const Rect *src1, const Rect *src2, Rect *dstRect) {
@@ -826,7 +802,7 @@ Boolean SectRect(const Rect *src1, const Rect *src2, Rect *dstRect) {
 }
 
 void FrameOval(const Rect *r) {
-    
+
 }
 
 OSErr GetVInfo(int16_t drvNum, StringPtr volName, int16_t *vRefNum, int32_t *freeBytes) {
@@ -834,15 +810,15 @@ OSErr GetVInfo(int16_t drvNum, StringPtr volName, int16_t *vRefNum, int32_t *fre
 }
 
 void HideControl(ControlHandle theControl) {
-    
+
 }
 
 void ShowControl(ControlHandle theControl) {
-    
+
 }
 
 void SetControlMaximum(ControlHandle theControl, int16_t maxValue) {
-    
+
 }
 
 Handle NewHandleClear(Size logicalSize) {
@@ -850,7 +826,7 @@ Handle NewHandleClear(Size logicalSize) {
 }
 
 void FSpCreateResFile(const FSSpec *spec, OSType creator, OSType fileType, ScriptCode scriptTag) {
-    
+
 }
 
 int16_t FSpOpenResFile(const FSSpec *spec, SignedByte permission) {
@@ -872,7 +848,7 @@ OSErr FSpDelete(const FSSpec *spec) {
 }
 
 void SizeControl(ControlHandle theControl, int16_t w, int16_t h) {
-    
+
 }
 
 int32_t DeltaPoint(Point ptA, Point ptB) {
@@ -880,7 +856,7 @@ int32_t DeltaPoint(Point ptA, Point ptB) {
 }
 
 void FrameRect(const Rect *r) {
-    
+
 }
 
 int16_t TextWidth(const void *textBuf, int16_t firstByte, int16_t byteCount) {
@@ -892,31 +868,31 @@ TEHandle TENew(const Rect *destRect, const Rect *viewRect) {
 }
 
 void TESetText(const void *text, int32_t length, TEHandle hTE) {
-    
+
 }
 
 void TESetSelect(int32_t selStart, int32_t selEnd, TEHandle hTE) {
-    
+
 }
 
 void TEUpdate(const Rect *rUpdate, TEHandle hTE) {
-    
+
 }
 
 void TEDispose(TEHandle hTE) {
-    
+
 }
 
 void GetItemMark(MenuHandle theMenu, int16_t item, int16_t *markChar) {
-    
+
 }
 
 void LMSetMBarHeight(int16_t h) {
-    
+
 }
 
 void CopyRgn(RgnHandle srcRgn, RgnHandle dstRgn) {
-    
+
 }
 
 RgnHandle GetGrayRgn(void) {
@@ -924,28 +900,28 @@ RgnHandle GetGrayRgn(void) {
 }
 
 void UnionRgn(RgnHandle srcRgnA, RgnHandle srcRgnB, RgnHandle dstRgn) {
-    
+
 }
 
 void SectRgn(RgnHandle srcRgnA, RgnHandle srcRgnB, RgnHandle dstRgn) {
-    
+
 }
 
 void PaintOne(WindowPeek window, RgnHandle clobberedRgn) {
-    
+
 }
 
 void SFGetFile(Point where, const Str255 prompt, Ptr fileFilter, int16_t numTypes, SFTypeList typeList,
                Ptr dlgHook, SFReply *reply) {
-    
+
 }
 
 void GetFInfo(const Str63 fName, int16_t vRefNum, FInfo *fInfo) {
-    
+
 }
 
 void DrawControls(WindowPtr theWindow) {
-    
+
 }
 
 TEHandle TEStyleNew(const Rect *destRect, const Rect *viewRect) {
@@ -953,15 +929,15 @@ TEHandle TEStyleNew(const Rect *destRect, const Rect *viewRect) {
 }
 
 void TEStyleInsert(const void *text, int32_t length, StScrpHandle hSt, TEHandle hTE) {
-    
+
 }
 
 void TESetAlignment(int16_t just, TEHandle hTE) {
-    
+
 }
 
 void TEScroll(int16_t dh, int16_t dv, TEHandle hTE) {
-    
+
 }
 
 int32_t GetResourceSizeOnDisk(Handle theResource) {
@@ -969,15 +945,15 @@ int32_t GetResourceSizeOnDisk(Handle theResource) {
 }
 
 void DisposeGWorld(GWorldPtr offscreenWorld) {
-    
+
 }
 
 void DisposePixPat(PixPatHandle ppat) {
-    
+
 }
 
 void SFPutFile(Point where, const Str255 prompt, const Str255 origName, Ptr dlgHook, SFReply *reply) {
-    
+
 }
 
 OSErr GetProcessInformation(const ProcessSerialNumber *PSN, ProcessInfoRecPtr info) {
@@ -990,15 +966,15 @@ ControlHandle NewControl(WindowPtr theWindow, const Rect *boundsRect, ConstStr25
 }
 
 void HideCursor(void) {
-    
+
 }
 
 void ShowCursor(void) {
-    
+
 }
 
 void TEDelete(TEHandle hTE) {
-    
+
 }
 
 void InitGraf(void *globalPtr) {
@@ -1006,4 +982,16 @@ void InitGraf(void *globalPtr) {
 
 void InitWindows(void) {
     WindowManager_Init();
+}
+
+void iconpicture(short mode) {
+    // TODO: This appears to be part of realmz_orig, but isn't defined anywhere. What is it supposed to do?
+}
+
+void InitRealmzCocoa() {
+    // On Classic Mac OS, the system does this automatically when the
+    // application is loaded.
+    if (ResourceManager_OpenResFile("realmz", fsRdWrPerm) < 0) {
+        fprintf(stderr, "WARNING: Cannot open the Realmz application resource file\n");
+    }
 }

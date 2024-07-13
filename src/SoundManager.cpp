@@ -102,19 +102,7 @@ void SoundManager::initialize(void) {
 	if (SDL_Init(SDL_INIT_AUDIO) < 0) {
 		SDL_Log("Could not initialize audio subsystem: %s\n", SDL_GetError());
 	} else {
-		int count;
-		SDL_AudioDeviceID *devices = SDL_GetAudioOutputDevices(&count);
-		if (devices == NULL) {
-			SDL_Log("Could not load audio devices: %s\n", SDL_GetError());
-			return;
-		}
-		SDL_Log("Audio devices: ");
-		for (int i = 0; i < count; i++) {
-			SDL_Log("%s ", SDL_GetAudioDeviceName(devices[i]));
-		}
-		SDL_Log("\n");
-		SDL_free(devices);
-		this->audioDeviceID = SDL_OpenAudioDevice(SDL_AUDIO_DEVICE_DEFAULT_OUTPUT, NULL);
+		this->audioDeviceID = SDL_OpenAudioDevice(SDL_AUDIO_DEVICE_DEFAULT_PLAYBACK, NULL);
 		SDL_Log("Using device: %s ", SDL_GetAudioDeviceName(this->audioDeviceID));
 		if (this->audioDeviceID == 0) {
 			SDL_Log("Failed to open audio: %s", SDL_GetError());
@@ -151,14 +139,14 @@ void SoundManager::play_sound(SDL_AudioStream *sdlAudioStream, int16_t id) {
 
 	uint8_t *audio_buf;
 	uint32_t audio_len;
-	
+
 	if (SDL_LoadWAV_IO(wav, SDL_TRUE, &spec, &audio_buf, &audio_len) < 0) {
 		SDL_Log("Could not load WAV data id %d: %s", id, SDL_GetError());
 		return;
 	}
 
 	spec.freq = std::max<int>(spec.freq, SDL_MIN_FREQ);
-	
+
 	if (SDL_SetAudioStreamFormat(sdlAudioStream, &spec, NULL) < 0) {
 		SDL_Log("Could not set audio stream format id %d: %s", id, SDL_GetError());
 		return;
@@ -180,7 +168,7 @@ SDL_AudioStream *SoundManager_new_audio_stream(void) {
 	SDL_AudioSpec spec;
 	spec.format = SDL_AUDIO_U8;
 	spec.channels = 1;
-	spec.freq = SDL_MIN_FREQ; 
+	spec.freq = SDL_MIN_FREQ;
 	SDL_AudioStream *sdlAudioStream = SDL_CreateAudioStream(&spec, &spec);
 	if (sdlAudioStream == NULL) {
 		SDL_Log("Could not create audio stream: %s\n", SDL_GetError());
