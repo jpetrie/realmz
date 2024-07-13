@@ -48,7 +48,7 @@ typedef struct {
 
 typedef struct {
 	ResourceManager_Rect portBounds;
-	uint16_t procID;
+	int16_t procID;
 	bool visible;
 	bool dismissable;
 	uint32_t refCon;
@@ -58,7 +58,7 @@ typedef struct {
 
 typedef struct {
 	ResourceManager_Rect bounds;
-	uint16_t wDefID;
+	int16_t wDefID;
 	bool visible;
 	bool dismissable;
 	uint32_t refCon;
@@ -82,6 +82,8 @@ typedef struct {
 
 void *ResourceManager_GetResource(int32_t theType, int16_t theID);
 int16_t ResourceManager_OpenResFile(const char filename[256], signed char permission);
+void ResourceManager_UseResFile(int16_t reference_number);
+int16_t ResourceManager_CurResFile();
 
 void ResourceManager_get_Str255_from_strN(char* out, int16_t res_id, uint16_t index);
 ResourceManager_PixPat ResourceManager_get_ppat_resource(int16_t patID);

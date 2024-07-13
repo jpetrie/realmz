@@ -83,7 +83,7 @@ void CheckItem(MenuHandle theMenu, uint16_t item, Boolean checked) {
 }
 
 UInt16 CurResFile(void) {
-    return 0;
+    return ResourceManager_CurResFile();
 }
 
 void DetachResource(Handle theResource) {
@@ -569,10 +569,6 @@ int16_t Random(void) {
     return 0;
 }
 
-void DisposeHandle(Handle h) {
-
-}
-
 int16_t OpenDeskAcc(ConstStr255Param deskAccName) {
     return 0;
 }
@@ -688,26 +684,6 @@ int16_t ResError(void) {
     return 0;
 }
 
-void HNoPurge(Handle h) {
-
-}
-
-Size GetHandleSize(Handle h) {
-    return 0;
-}
-
-void SetHandleSize(Handle h, Size newSize) {
-
-}
-
-OSErr MemError(void) {
-    return 0;
-}
-
-void HPurge(Handle h) {
-
-}
-
 void SetMenuBar(Handle menuList) {
 
 }
@@ -802,7 +778,7 @@ void ObscureCursor(void) {
 }
 
 void UseResFile(int16_t refNum) {
-
+    ResourceManager_UseResFile(refNum);
 }
 
 Boolean WaitNextEvent(int16_t eventMask, EventRecord *theEvent, uint32_t sleep, RgnHandle mouseRgn) {
@@ -1010,4 +986,12 @@ void InitWindows(void) {
 
 void iconpicture(short mode) {
     // TODO: This appears to be part of realmz_orig, but isn't defined anywhere. What is it supposed to do?
+}
+
+void InitRealmzCocoa() {
+    // On Classic Mac OS, the system does this automatically when the
+    // application is loaded.
+    if (ResourceManager_OpenResFile("realmz", fsRdWrPerm) < 0) {
+        fprintf(stderr, "WARNING: Cannot open the Realmz application resource file\n");
+    }
 }

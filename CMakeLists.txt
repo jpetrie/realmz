@@ -190,6 +190,7 @@ set(SOURCES
     src/realmz_orig/warn.c
     src/realmz_orig/wear.c
     src/RealmzCocoa.c
+    src/MemoryManager.cpp
     src/ResourceManager.cpp
     src/SoundManager.cpp
     src/WindowManager.cpp

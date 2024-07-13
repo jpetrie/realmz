@@ -989,7 +989,9 @@ void ToolBoxInit(void)
     char wd[2048];
     CFURLGetFileSystemRepresentation(wd_url, true, (uint8_t *)wd, sizeof(wd));
     CFRelease(wd_url);
-    chdir(wd);	
+    chdir(wd);
+	#elif defined(REALMZ_COCOA)
+	InitRealmzCocoa();
 	#endif
     
 	defaultfont=1601;

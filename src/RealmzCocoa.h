@@ -123,7 +123,8 @@ static inline void rintel2moto(Rect *r) {
 
 #define transparent 36
 
-#define kPreferencesFolderType 0x70726566  // "pref"
+// "pref"
+#define kPreferencesFolderType 0x70726566
 #define kDontCreateFolder FALSE
 // https://developer.apple.com/documentation/coreservices/1389331-anonymous/konsystemdisk
 #define kOnSystemDisk -32768L
@@ -542,6 +543,8 @@ static inline void MoveControlByID(int16_t id, WindowPtr dlg, int16_t dx, int16_
     GetControlBounds(h, &r);
     MoveControl(h, r.left + dx, r.top + dy);
 }
+
+void InitRealmzCocoa();
 
 #include "structs.h"
 #include "variables.h"
