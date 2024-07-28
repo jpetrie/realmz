@@ -10,8 +10,9 @@ public:
   WindowManager() = default;
   ~WindowManager();
 
-  void add(CWindowRecord* const window);
-  CWindowRecord* const find(WindowPtr wp);
+	void add(CWindowRecord * const window);
+	CWindowRecord * const find(WindowPtr wp);
+	void dispose(WindowPtr wp);
 
 private:
   std::list<CWindowRecord* const> windows;
@@ -37,6 +38,16 @@ CWindowRecord* const WindowManager::find(WindowPtr wp) {
   }
 
   return NULL;
+}
+
+void WindowManager::dispose(WindowPtr wp) {
+	for (auto& iter : this->windows) {
+		CWindowRecord wr = *iter;
+		if (&wr.port == wp) {
+			free(wr.dItems);
+			this->windows.erase(&wr);
+		}
+	}
 }
 
 static WindowManager wm;
@@ -236,4 +247,14 @@ void WindowManager_MoveWindow(WindowPtr theWindow, uint16_t hGlobal, uint16_t vG
 
   SDL_SetWindowPosition(window->sdlWindow, hGlobal, vGlobal);
   SDL_SyncWindow(window->sdlWindow);
+}
+
+void WindowManager_DisposeWindow(WindowPtr theWindow) {
+	CWindowRecord * const window = wm.find(theWindow);
+	if (window == NULL) {
+		return;
+	}
+
+	SDL_DestroyWindow(window->sdlWindow);
+	
 }

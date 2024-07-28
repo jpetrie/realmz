@@ -194,10 +194,12 @@ DialogPtr GetNewDialog(uint16_t dialogID, void* dStorage, WindowPtr behind) {
 
 CWindowPtr GetNewCWindow(int16_t windowID, void* wStorage, WindowPtr behind) {
   ResourceManager_Window w = ResourceManager_get_wind_resource(windowID);
-  CGrafPort* cgp = malloc(sizeof(CGrafPort));
-  cpyRect(&(w.portBounds), &(cgp->portRect));
+  Rect bounds;
+  cpyRect(&(w.portBounds), &bounds);
+  CWindowPtr cwindow = WindowManager_CreateNewWindow(bounds, w.windowTitle, w.visible, w.procID,
+      behind, w.dismissable, w.refCon, 0, NULL);
 
-  return cgp;
+  return cwindow;
 }
 
 Boolean GetNextEvent(uint16_t eventMask, EventRecord* theEvent) {
@@ -344,6 +346,7 @@ void LineTo(int16_t h, int16_t v) {
 }
 
 void DisposeWindow(WindowPtr theWindow) {
+    WindowManager_DisposeWindow(theWindow);
 }
 
 ControlHandle GetNewControl(int16_t controlID, WindowPtr owner) {

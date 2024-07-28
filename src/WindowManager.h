@@ -14,6 +14,7 @@ WindowPtr WindowManager_CreateNewWindow(Rect bounds, char* title, bool visible, 
 void WindowManager_DrawDialog(WindowPtr theWindow);
 bool WindowManager_WaitNextEvent(EventRecord* theEvent);
 void WindowManager_MoveWindow(WindowPtr theWindow, uint16_t hGlobal, uint16_t vGlobal, bool front);
+void WindowManager_DisposeWindow(WindowPtr theWindow);
 
 #ifdef __cplusplus
 } // extern "C"
