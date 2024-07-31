@@ -100,6 +100,7 @@ set(SOURCES
     src/realmz_orig/getword-gender.c
     src/realmz_orig/handlemenuchoice.c
     src/realmz_orig/heal.c
+    src/realmz_orig/iconpict.c
     src/realmz_orig/inwindow.c
     src/realmz_orig/items.c
     src/realmz_orig/killbody.c

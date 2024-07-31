@@ -865,10 +865,6 @@ void InitWindows(void) {
   WindowManager_Init();
 }
 
-void iconpicture(short mode) {
-  // TODO: This appears to be part of realmz_orig, but isn't defined anywhere. What is it supposed to do?
-}
-
 void InitRealmzCocoa() {
   // On Classic Mac OS, the system does this automatically when the
   // application is loaded.
