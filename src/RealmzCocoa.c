@@ -87,6 +87,7 @@ void DisableItem(MenuHandle theMenu, uint16_t item) {
 }
 
 void DisposeDialog(DialogPtr theDialog) {
+  WindowManager_DisposeWindow(theDialog);
 }
 
 void DrawDialog(DialogPtr theDialog) {
@@ -346,7 +347,7 @@ void LineTo(int16_t h, int16_t v) {
 }
 
 void DisposeWindow(WindowPtr theWindow) {
-    WindowManager_DisposeWindow(theWindow);
+  WindowManager_DisposeWindow(theWindow);
 }
 
 ControlHandle GetNewControl(int16_t controlID, WindowPtr owner) {
