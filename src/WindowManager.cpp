@@ -3,43 +3,6 @@
 #include <SDL3/SDL_events.h>
 #include <SDL3/SDL_render.h>
 #include <SDL3/SDL_video.h>
-#include <list>
-
-class WindowManager {
-public:
-  WindowManager() = default;
-  ~WindowManager();
-
-  void add(CWindowRecord* const window);
-  CWindowRecord* const find(WindowPtr wp);
-
-private:
-  std::list<CWindowRecord* const> windows;
-};
-
-WindowManager::~WindowManager() {
-  std::list<CWindowRecord* const>::const_iterator iter;
-  for (iter = this->windows.begin(); iter != this->windows.end(); iter++) {
-    delete *iter;
-  }
-}
-
-void WindowManager::add(CWindowRecord* const window) {
-  this->windows.emplace_back(window);
-}
-
-CWindowRecord* const WindowManager::find(WindowPtr wp) {
-  std::list<CWindowRecord* const>::const_iterator iter;
-  for (iter = this->windows.begin(); iter != this->windows.end(); iter++) {
-    if (&(*iter)->port == wp) {
-      return *iter;
-    }
-  }
-
-  return NULL;
-}
-
-static WindowManager wm;
 
 static void SDL_snprintfcat(SDL_OUT_Z_CAP(maxlen) char* text, size_t maxlen, SDL_PRINTF_FORMAT_STRING const char* fmt, ...) {
   size_t length = SDL_strlen(text);
@@ -142,14 +105,13 @@ WindowPtr WindowManager_CreateNewWindow(Rect bounds, char* title, bool visible, 
   wr->refCon = refCon;
   wr->numItems = numItems;
   wr->dItems = dItems;
-  wm.add(wr);
 
   SDL_SyncWindow(wr->sdlWindow);
   return &wr->port;
 }
 
 void WindowManager_DrawDialog(WindowPtr theWindow) {
-  CWindowRecord* const window = wm.find(theWindow);
+  CWindowRecord* const window = reinterpret_cast<CWindowRecord*>(theWindow);
   SDL_Renderer* renderer = window->sdlRenderer;
 
   SDL_RenderClear(renderer);
@@ -229,11 +191,26 @@ bool WindowManager_WaitNextEvent(EventRecord* theEvent) {
 }
 
 void WindowManager_MoveWindow(WindowPtr theWindow, uint16_t hGlobal, uint16_t vGlobal, bool front) {
-  CWindowRecord* const window = wm.find(theWindow);
-  if (window == NULL) {
+  if (theWindow == nullptr) {
     return;
   }
 
+  CWindowRecord* const window = reinterpret_cast<CWindowRecord*>(theWindow);
+
   SDL_SetWindowPosition(window->sdlWindow, hGlobal, vGlobal);
   SDL_SyncWindow(window->sdlWindow);
+}
+
+void WindowManager_DisposeWindow(WindowPtr theWindow) {
+  if (theWindow == nullptr) {
+    return;
+  }
+
+  CWindowRecord* const window = reinterpret_cast<CWindowRecord*>(theWindow);
+
+  SDL_DestroyRenderer(window->sdlRenderer);
+  SDL_DestroyWindow(window->sdlWindow);
+
+  free(window->dItems);
+  delete window;
 }
