@@ -75,11 +75,17 @@ void WindowManager_Init(void) {
 WindowPtr WindowManager_CreateNewWindow(Rect bounds, char* title, bool visible, int procID, WindowPtr behind,
     bool goAwayFlag, int32_t refCon, uint16_t numItems, ResourceManager_DialogItem* dItems) {
 
+  SDL_WindowFlags flags{};
+
+  if (procID == plainDBox) {
+    flags |= SDL_WINDOW_BORDERLESS | SDL_WINDOW_UTILITY;
+  }
+
   SDL_Window* window = SDL_CreateWindow(
       title,
       bounds.right - bounds.left,
       bounds.bottom - bounds.top,
-      0);
+      flags);
 
   if (window == NULL) {
     SDL_Log("Could not create window: %s\n", SDL_GetError());
@@ -213,4 +219,23 @@ void WindowManager_DisposeWindow(WindowPtr theWindow) {
 
   free(window->dItems);
   delete window;
+}
+
+DisplayProperties WindowManager_GetPrimaryDisplayProperties(void) {
+  auto displayID = SDL_GetPrimaryDisplay();
+
+  if (displayID == 0) {
+    SDL_Log("Could not get primary display: %s", SDL_GetError());
+    return {};
+  }
+
+  SDL_Rect bounds{};
+  if (SDL_GetDisplayBounds(displayID, &bounds) < 0) {
+    SDL_Log("Could not get display bounds: %s", SDL_GetError());
+    return {};
+  }
+
+  return DisplayProperties{
+      bounds.w,
+      bounds.h};
 }
