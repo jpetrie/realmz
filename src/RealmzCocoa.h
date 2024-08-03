@@ -153,7 +153,7 @@ static inline void CtoPstr(char* x) {
   while (x[i++] != '\0') {
   };
   len = i;
-  while (i--) {
+  while (--i > 0) {
     x[i] = x[i - 1];
   }
   x[0] = len - 1;
