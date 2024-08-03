@@ -164,10 +164,11 @@ PixMapHandle GetGWorldPixMap(GWorldPtr offscreenGWorld) {
 }
 
 GDHandle GetMainDevice(void) {
+  DisplayProperties dp = WindowManager_GetPrimaryDisplayProperties();
   gDevice.gdRect.top = 0;
   gDevice.gdRect.left = 0;
-  gDevice.gdRect.right = WINDOW_W;
-  gDevice.gdRect.bottom = WINDOW_H;
+  gDevice.gdRect.right = dp.width;
+  gDevice.gdRect.bottom = dp.height;
 
   gdPixMap.bounds = gDevice.gdRect;
   gdPixMap.pixelSize = 32;

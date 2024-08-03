@@ -21,9 +21,6 @@
 #include "ResourceTypes.h"
 #include "Types.h"
 
-#define WINDOW_W 800
-#define WINDOW_H 600
-
 #define SWAP_BIG16(x) OSSwapBigToHostInt16(x)
 #define SWAP_BIG32(x) OSSwapBigToHostInt32(x)
 

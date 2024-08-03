@@ -220,3 +220,22 @@ void WindowManager_DisposeWindow(WindowPtr theWindow) {
   free(window->dItems);
   delete window;
 }
+
+DisplayProperties WindowManager_GetPrimaryDisplayProperties(void) {
+  auto displayID = SDL_GetPrimaryDisplay();
+
+  if (displayID == 0) {
+    SDL_Log("Could not get primary display: %s", SDL_GetError());
+    return {};
+  }
+
+  SDL_Rect bounds{};
+  if (SDL_GetDisplayBounds(displayID, &bounds) < 0) {
+    SDL_Log("Could not get display bounds: %s", SDL_GetError());
+    return {};
+  }
+
+  return DisplayProperties{
+      bounds.w,
+      bounds.h};
+}
