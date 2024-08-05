@@ -192,11 +192,13 @@ set(SOURCES
     src/WindowManager.cpp
 )
 
+# Installed in Contents/Resources
 set(RESOURCE_FILES
     resources/realmz.rsrc
     bundle/AppIcon.icns
 )
 
+# Installed in Contents/Resources/Data\ Files
 set(DATA_RESOURCE_FILES
     base/Realmz/Data\ Files/The\ Family\ Jewels.rsrc
 )
