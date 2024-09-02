@@ -1,8 +1,16 @@
 #include "WindowManager.h"
+
 #include <SDL3/SDL.h>
 #include <SDL3/SDL_events.h>
 #include <SDL3/SDL_render.h>
 #include <SDL3/SDL_video.h>
+#include <phosg/Strings.hh>
+#include <resource_file/ResourceFile.hh>
+
+#include "MemoryManager.hpp"
+#include "QuickDraw.hpp"
+
+static phosg::PrefixedLogger wm_log("[WindowManager] ");
 
 static void SDL_snprintfcat(SDL_OUT_Z_CAP(maxlen) char* text, size_t maxlen, SDL_PRINTF_FORMAT_STRING const char* fmt, ...) {
   size_t length = SDL_strlen(text);
@@ -63,39 +71,107 @@ static void PrintDebugInfo(void) {
   }
 }
 
+uint16_t WindowManager_get_ditl_resources(int16_t ditlID, DialogItem** items) {
+  auto data_handle = GetResource(ResourceDASM::RESOURCE_TYPE_DITL, ditlID);
+  auto ditlData = read_from_handle(data_handle);
+
+  uint16_t numItems = ditlData.get_u16b() + 1;
+  *items = (DialogItem*)calloc(numItems, sizeof(DialogItem));
+  for (int i = 0; i < numItems; i++) {
+    ditlData.read(4);
+    Rect dispWindow = rect_from_reader(ditlData);
+    uint8_t type = ditlData.get_u8();
+    bool enabled = (bool)(type & 0x80);
+    type = (type & 0x7F);
+    switch (type) {
+      // PICT Resource
+      case 64: {
+        ditlData.read(1);
+        uint16_t pictID = ditlData.get_u16b();
+        auto p = QuickDraw_get_pict_resource(pictID);
+        (*items)[i].type = (*items)[i].DIALOG_ITEM_TYPE_PICT;
+        (*items)[i].dialogItem.pict.dispRect = dispWindow;
+        (*items)[i].dialogItem.pict.enabled = enabled;
+        (*items)[i].dialogItem.pict.p = p;
+        break;
+      }
+      default:
+        break;
+    }
+  }
+  return numItems;
+}
+
 void WindowManager_Init(void) {
   if (SDL_Init(SDL_INIT_VIDEO) < 0) {
-    SDL_Log("Couldn't initialize video driver: %s\n", SDL_GetError());
+    wm_log.error("Couldn't initialize video driver: %s\n", SDL_GetError());
     return;
   }
 
   PrintDebugInfo();
 }
 
-WindowPtr WindowManager_CreateNewWindow(Rect bounds, char* title, bool visible, int procID, WindowPtr behind,
-    bool goAwayFlag, int32_t refCon, uint16_t numItems, ResourceManager_DialogItem* dItems) {
+WindowPtr WindowManager_CreateNewWindow(int16_t res_id, bool is_dialog, WindowPtr behind) {
+  Rect bounds;
+  int16_t proc_id;
+  std::string title;
+  bool visible;
+  bool go_away;
+  uint32_t ref_con;
+  size_t num_dialog_items;
+  DialogItem* dialog_items;
+
+  if (is_dialog) {
+    auto data_handle = GetResource(ResourceDASM::RESOURCE_TYPE_DLOG, res_id);
+    auto dlog = ResourceDASM::ResourceFile::decode_DLOG(*data_handle, GetHandleSize(data_handle));
+    bounds.left = dlog.bounds.x1;
+    bounds.right = dlog.bounds.x2;
+    bounds.top = dlog.bounds.y1;
+    bounds.bottom = dlog.bounds.y2;
+    proc_id = dlog.proc_id;
+    title = dlog.title;
+    visible = dlog.visible;
+    go_away = dlog.go_away;
+    ref_con = dlog.ref_con;
+    num_dialog_items = WindowManager_get_ditl_resources(dlog.items_id, &dialog_items);
+
+  } else {
+    auto data_handle = GetResource(ResourceDASM::RESOURCE_TYPE_WIND, res_id);
+    auto wind = ResourceDASM::ResourceFile::decode_WIND(*data_handle, GetHandleSize(data_handle));
+    bounds.left = wind.bounds.x1;
+    bounds.right = wind.bounds.x2;
+    bounds.top = wind.bounds.y1;
+    bounds.bottom = wind.bounds.y2;
+    proc_id = wind.proc_id;
+    title = wind.title;
+    visible = wind.visible;
+    go_away = wind.go_away;
+    ref_con = wind.ref_con;
+    num_dialog_items = 0;
+    dialog_items = nullptr;
+  }
 
   SDL_WindowFlags flags{};
 
-  if (procID == plainDBox) {
+  if (proc_id == plainDBox) {
     flags |= SDL_WINDOW_BORDERLESS | SDL_WINDOW_UTILITY;
   }
 
   SDL_Window* window = SDL_CreateWindow(
-      title,
+      title.c_str(),
       bounds.right - bounds.left,
       bounds.bottom - bounds.top,
       flags);
 
   if (window == NULL) {
-    SDL_Log("Could not create window: %s\n", SDL_GetError());
+    wm_log.error("Could not create window: %s\n", SDL_GetError());
     return NULL;
   }
 
   SDL_Renderer* renderer = SDL_CreateRenderer(window, "opengl");
 
   if (renderer == NULL) {
-    SDL_Log("could not create renderer: %s\n", SDL_GetError());
+    wm_log.error("could not create renderer: %s\n", SDL_GetError());
     return NULL;
   }
 
@@ -104,13 +180,13 @@ WindowPtr WindowManager_CreateNewWindow(Rect bounds, char* title, bool visible, 
   CWindowRecord* wr = new CWindowRecord();
   wr->port = port;
   wr->visible = visible;
-  wr->goAwayFlag = goAwayFlag;
-  wr->windowKind = procID;
+  wr->goAwayFlag = go_away;
+  wr->windowKind = proc_id;
   wr->sdlWindow = window;
   wr->sdlRenderer = renderer;
-  wr->refCon = refCon;
-  wr->numItems = numItems;
-  wr->dItems = dItems;
+  wr->refCon = ref_con;
+  wr->numItems = num_dialog_items;
+  wr->dItems = dialog_items;
 
   SDL_SyncWindow(wr->sdlWindow);
   return &wr->port;
@@ -123,24 +199,24 @@ void WindowManager_DrawDialog(WindowPtr theWindow) {
   SDL_RenderClear(renderer);
 
   for (int i = 0; i < window->numItems; i++) {
-    ResourceManager_DialogItem di = window->dItems[i];
+    DialogItem di = window->dItems[i];
 
     switch (di.type) {
       case di.DIALOG_ITEM_TYPE_PICT:
-        ResourceManager_DialogItemPict pict = di.dialogItem.pict;
-        ResourceManager_Rect r = pict.p.picFrame;
+        DialogItemPict pict = di.dialogItem.pict;
+        Rect r = pict.p.picFrame;
         uint32_t w = r.right - r.left;
         uint32_t h = r.bottom - r.top;
-        SDL_Surface* s = SDL_CreateSurfaceFrom(w, h, SDL_PIXELFORMAT_RGB24, (void*)pict.p.data, 3 * w);
+        SDL_Surface* s = SDL_CreateSurfaceFrom(w, h, SDL_PIXELFORMAT_RGB24, *pict.p.data, 3 * w);
 
         if (s == NULL) {
-          SDL_Log("Could not create surface: %s\n", SDL_GetError());
+          wm_log.error("Could not create surface: %s\n", SDL_GetError());
           break;
         }
 
         SDL_Texture* t = SDL_CreateTextureFromSurface(renderer, s);
         if (t == NULL) {
-          SDL_Log("Could not create texture: %s\n", SDL_GetError());
+          wm_log.error("Could not create texture: %s\n", SDL_GetError());
           break;
         }
         SDL_DestroySurface(s);
@@ -225,13 +301,13 @@ DisplayProperties WindowManager_GetPrimaryDisplayProperties(void) {
   auto displayID = SDL_GetPrimaryDisplay();
 
   if (displayID == 0) {
-    SDL_Log("Could not get primary display: %s", SDL_GetError());
+    wm_log.error("Could not get primary display: %s", SDL_GetError());
     return {};
   }
 
   SDL_Rect bounds{};
   if (SDL_GetDisplayBounds(displayID, &bounds) < 0) {
-    SDL_Log("Could not get display bounds: %s", SDL_GetError());
+    wm_log.error("Could not get display bounds: %s", SDL_GetError());
     return {};
   }
 
