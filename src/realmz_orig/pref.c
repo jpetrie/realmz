@@ -442,8 +442,8 @@ short createpref(FSSpec pref_FSSpec, short mode) {
    * NOTE(fuzziqersoftware): The following is not part of the original
    * implementation. It appears the template PRFN resource in realmz.rsrc is
    * too small, leading to an out-of-bounds memory access when we try to use
-   * it later. To deal with this, we manually extend it with zeroes it if
-   * it's too small before writing it to the new preferences file. */
+   * it later. To deal with this, we manually extend it with zeroes if it's
+   * too small before writing it to the new preferences file. */
   size_t orig_app_handle_size = GetHandleSize(app_handle);
   if (orig_app_handle_size < sizeof(PrefRecord)) {
     SetHandleSize(app_handle, sizeof(PrefRecord));

@@ -14,14 +14,15 @@
 static phosg::PrefixedLogger sm_log("[SoundManager] ");
 
 constexpr size_t OUTPUT_SAMPLE_RATE = 48000;
-constexpr bool ENABLE_LINEAR_INTERPOLATION = true;
 
 class SoundManager {
 public:
   SoundManager() = default;
 
   ~SoundManager() {
-    SDL_CloseAudioDevice(this->device_id);
+    if (this->device_id > 0) {
+      SDL_CloseAudioDevice(this->device_id);
+    }
   }
 
   void lazy_initialize(void) {
@@ -132,38 +133,23 @@ private:
     };
 
     double expansion_factor = static_cast<double>(OUTPUT_SAMPLE_RATE) / static_cast<double>(decoded.sample_rate);
-    if (ENABLE_LINEAR_INTERPOLATION) {
-      float l_prev_sample = read_sample();
-      float r_prev_sample = is_stereo ? read_sample() : l_prev_sample;
-      while (!r.eof()) {
-        float l_sample = read_sample();
-        float r_sample = is_stereo ? read_sample() : l_sample;
-        size_t in_sample_index = r.where() >> (is_16bit + is_stereo); // 1-4 bytes per frame, depending on is_16bit and is_stereo
-        size_t samples_to_write =
-            static_cast<size_t>(ceil((in_sample_index + 1) * expansion_factor)) -
-            static_cast<size_t>(ceil(in_sample_index * expansion_factor));
-        for (size_t z = 0; z < samples_to_write; z++) {
-          float progress_factor = static_cast<float>(z) / samples_to_write;
-          write_sample(l_prev_sample * (1.0 - progress_factor) + l_sample * progress_factor);
-          write_sample(r_prev_sample * (1.0 - progress_factor) + r_sample * progress_factor);
-        }
-        l_prev_sample = l_sample;
-        r_prev_sample = r_sample;
+    float l_prev_sample = read_sample();
+    float r_prev_sample = is_stereo ? read_sample() : l_prev_sample;
+    while (!r.eof()) {
+      float l_sample = read_sample();
+      float r_sample = is_stereo ? read_sample() : l_sample;
+      size_t in_sample_index = r.where() >> (is_16bit + is_stereo); // 1-4 bytes per frame, depending on is_16bit and is_stereo
+      size_t samples_to_write =
+          static_cast<size_t>(ceil((in_sample_index + 1) * expansion_factor)) -
+          static_cast<size_t>(ceil(in_sample_index * expansion_factor));
+      for (size_t z = 0; z < samples_to_write; z++) {
+        // Linearly interpolate this output sample between the previous and next input samples
+        float progress_factor = static_cast<float>(z) / samples_to_write;
+        write_sample(l_prev_sample * (1.0 - progress_factor) + l_sample * progress_factor);
+        write_sample(r_prev_sample * (1.0 - progress_factor) + r_sample * progress_factor);
       }
-
-    } else {
-      while (!r.eof()) {
-        float l_sample = read_sample();
-        float r_sample = is_stereo ? read_sample() : l_sample;
-        size_t in_sample_index = r.where() >> (is_16bit + is_stereo); // 1-4 bytes per frame, depending on is_16bit and is_stereo
-        size_t samples_to_write =
-            static_cast<size_t>(ceil((in_sample_index + 1) * expansion_factor)) -
-            static_cast<size_t>(ceil(in_sample_index * expansion_factor));
-        for (size_t z = 0; z < samples_to_write; z++) {
-          write_sample(l_sample);
-          write_sample(r_sample);
-        }
-      }
+      l_prev_sample = l_sample;
+      r_prev_sample = r_sample;
     }
 
     auto ret = std::make_shared<Sound>();
