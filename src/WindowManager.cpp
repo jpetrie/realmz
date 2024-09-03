@@ -71,6 +71,7 @@ static void PrintDebugInfo(void) {
   }
 }
 
+// See Macintosh Toolbox Essentials, 6-151
 uint16_t WindowManager_get_ditl_resources(int16_t ditlID, DialogItem** items) {
   auto data_handle = GetResource(ResourceDASM::RESOURCE_TYPE_DITL, ditlID);
   auto ditlData = read_from_handle(data_handle);
@@ -78,7 +79,7 @@ uint16_t WindowManager_get_ditl_resources(int16_t ditlID, DialogItem** items) {
   uint16_t numItems = ditlData.get_u16b() + 1;
   *items = (DialogItem*)calloc(numItems, sizeof(DialogItem));
   for (int i = 0; i < numItems; i++) {
-    ditlData.read(4);
+    ditlData.read(4); // reserved
     Rect dispWindow = rect_from_reader(ditlData);
     uint8_t type = ditlData.get_u8();
     bool enabled = (bool)(type & 0x80);
@@ -86,7 +87,7 @@ uint16_t WindowManager_get_ditl_resources(int16_t ditlID, DialogItem** items) {
     switch (type) {
       // PICT Resource
       case 64: {
-        ditlData.read(1);
+        ditlData.read(1); // reserved
         uint16_t pictID = ditlData.get_u16b();
         auto p = QuickDraw_get_pict_resource(pictID);
         (*items)[i].type = (*items)[i].DIALOG_ITEM_TYPE_PICT;
@@ -95,7 +96,18 @@ uint16_t WindowManager_get_ditl_resources(int16_t ditlID, DialogItem** items) {
         (*items)[i].dialogItem.pict.p = p;
         break;
       }
+      // Static Text
+      case 8: {
+        uint8_t length = ditlData.get_u8();
+        (*items)[i].type = (*items)[i].DIALOG_ITEM_TYPE_STATIC_TEXT;
+        (*items)[i].dialogItem.staticText.dispRect = dispWindow;
+        (*items)[i].dialogItem.staticText.enabled = enabled;
+        (*items)[i].dialogItem.staticText.text[0] = length;
+        memcpy((*items)[i].dialogItem.staticText.text + 1, ditlData.read(length).c_str(), length);
+        break;
+      }
       default:
+        wm_log.error("Unknown DITL type %d", type);
         break;
     }
   }
@@ -202,7 +214,7 @@ void WindowManager_DrawDialog(WindowPtr theWindow) {
     DialogItem di = window->dItems[i];
 
     switch (di.type) {
-      case di.DIALOG_ITEM_TYPE_PICT:
+      case di.DIALOG_ITEM_TYPE_PICT: {
         DialogItemPict pict = di.dialogItem.pict;
         Rect r = pict.p.picFrame;
         uint32_t w = r.right - r.left;
@@ -229,6 +241,11 @@ void WindowManager_DrawDialog(WindowPtr theWindow) {
 
         SDL_RenderTexture(renderer, t, NULL, &dest);
         break;
+      }
+      case di.DIALOG_ITEM_TYPE_STATIC_TEXT: {
+        // TODO: Render static text in dialogs
+        break;
+      }
     }
   }
 

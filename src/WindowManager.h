@@ -46,12 +46,20 @@ typedef struct {
   Picture p;
 } DialogItemPict;
 
+typedef struct {
+  Rect dispRect;
+  bool enabled;
+  Str255 text;
+} DialogItemStaticText;
+
 typedef union {
   DialogItemPict pict;
+  DialogItemStaticText staticText;
 } DialogItemType;
 
 typedef struct {
   enum DIALOG_ITEM_TYPE {
+    DIALOG_ITEM_TYPE_STATIC_TEXT,
     DIALOG_ITEM_TYPE_PICT,
   } type;
   DialogItemType dialogItem;

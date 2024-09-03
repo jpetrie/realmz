@@ -10,6 +10,7 @@ project(Realmz
 set(CMAKE_C_STANDARD 90)
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
+set(CMAKE_XCODE_ATTRIBUTE_DEBUG_INFORMATION_FORMAT "dwarf")
 # TODO(martin): We should eventually get everything to built without warnings and enable these flags.
 # if (MSVC)
 #     add_compile_options(/W4 /WX)
