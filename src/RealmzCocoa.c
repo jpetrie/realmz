@@ -182,15 +182,7 @@ Boolean GetNextEvent(uint16_t eventMask, EventRecord* theEvent) {
 }
 
 PicHandle GetPicture(uint16_t picID) {
-  Picture p = QuickDraw_get_pict_resource(picID);
-  PicHandle h = malloc(sizeof(PicPtr));
-  *h = malloc(sizeof(Picture));
-
-  (*h)->picSize = p.picSize;
-  cpyRect(&(p.picFrame), &((*h)->picFrame));
-  (*h)->data = p.data;
-
-  return h;
+  return QuickDraw_get_pict_resource(picID);
 }
 
 void GetPort(GrafPtr* port) {

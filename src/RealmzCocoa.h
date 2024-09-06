@@ -197,7 +197,6 @@ typedef Handle RgnHandle;
 typedef Handle TEHandle;
 typedef Handle CCrsrHandle;
 typedef Handle SndListHandle;
-typedef Picture *PicPtr, **PicHandle;
 typedef Ptr ModalFilterProcPtr;
 typedef DialogPtr DialogRef;
 typedef int16_t QDErr;

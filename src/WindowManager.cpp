@@ -93,7 +93,7 @@ uint16_t WindowManager_get_ditl_resources(int16_t ditlID, DialogItem** items) {
         (*items)[i].type = (*items)[i].DIALOG_ITEM_TYPE_PICT;
         (*items)[i].dialogItem.pict.dispRect = dispWindow;
         (*items)[i].dialogItem.pict.enabled = enabled;
-        (*items)[i].dialogItem.pict.p = p;
+        (*items)[i].dialogItem.pict.p = **p;
         break;
       }
       // Static Text
