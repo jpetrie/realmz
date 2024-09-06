@@ -293,7 +293,6 @@ int16_t FindWindow(Point thePoint, WindowPtr* theWindow);
 void DrawDialog(DialogPtr theDialog);
 void TextSize(uint16_t size);
 void BackColor(uint32_t color);
-PicHandle GetPicture(uint16_t picID);
 void DrawPicture(PicHandle myPicture, const Rect* dstRect);
 void PenPixPat(PixPatHandle ppat);
 GDHandle GetGDevice(void);

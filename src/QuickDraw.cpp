@@ -64,7 +64,7 @@ PixPatHandle GetPixPat(uint16_t patID) {
   return ret_handle;
 }
 
-PicHandle QuickDraw_get_pict_resource(int16_t id) {
+PicHandle GetPicture(int16_t id) {
   // The GetPicture Mac Classic syscall must return a Handle to a decoded Picture resource,
   // but it must also be the same Handle we use to index loaded Resources in the ResourceManager.
   // Otherwise, subsequent calls to DetachResource or ReleaseResource would fail to find it.

@@ -72,7 +72,7 @@ typedef CGrafPtr GWorldPtr;
 typedef GrafPort* GrafPtr;
 
 PixPatHandle GetPixPat(uint16_t patID);
-PicHandle QuickDraw_get_pict_resource(int16_t picID);
+PicHandle GetPicture(int16_t picID);
 
 #ifdef __cplusplus
 } // extern "C"
