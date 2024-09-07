@@ -200,10 +200,23 @@ set_source_files_properties(${RESOURCE_FILES} PROPERTIES
 set(DATA_RESOURCE_FILES
     "base/Realmz/Data Files/The Family Jewels.rsrc"
     "base/Realmz/Data Files/Data ID"
+    "base/Realmz/Data Files/Data ID.rsrc"
     "base/Realmz/Data Files/Custom Names.rsrc"
     "base/Realmz/Data Files/Scenario Names.rsrc"
     "base/Realmz/Data Files/Portraits.rsrc"
     "base/Realmz/Data Files/Tacticals.rsrc"
+    "base/Realmz/Data Files/Combat Data BD"
+    "base/Realmz/Data Files/Data AD"
+    "base/Realmz/Data Files/Data Caste"
+    "base/Realmz/Data Files/Data Castle BD"
+    "base/Realmz/Data Files/Data Desert BD"
+    "base/Realmz/Data Files/Data ID"
+    "base/Realmz/Data Files/Data P BD"
+    "base/Realmz/Data Files/Data Race"
+    "base/Realmz/Data Files/Data S"
+    "base/Realmz/Data Files/Data SUB BD"
+    "base/Realmz/Data Files/Data Snow BD"
+    "base/Realmz/Data Files/Data Swamp BD"
 )
 set_source_files_properties(${DATA_RESOURCE_FILES} PROPERTIES
     MACOSX_PACKAGE_LOCATION "Resources/Data\ Files"
