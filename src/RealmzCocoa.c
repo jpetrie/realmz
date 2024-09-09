@@ -28,9 +28,8 @@ static inline void cpyRect(const Rect* src, Rect* dst) {
   dst->right = src->right;
 }
 
-Rect* GetPortBounds(CGrafPtr port, Rect* rect) {
+void GetPortBounds(CGrafPtr port, Rect* rect) {
   *rect = port->portRect;
-  return rect;
 }
 
 void ErasePortRect(void) {
@@ -39,9 +38,8 @@ void ErasePortRect(void) {
   EraseRect(&portRect);
 }
 
-Rect* GetControlBounds(ControlHandle ctrl, Rect* rect) {
+void GetControlBounds(ControlHandle ctrl, Rect* rect) {
   *rect = (**ctrl).contrlRect;
-  return rect;
 }
 
 void GetSoundVol(short* x) {

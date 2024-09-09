@@ -457,9 +457,9 @@ void InitWindows(void);
 #define optionKey 2048
 #define controlKey 4096
 
-Rect* GetPortBounds(CGrafPtr port, Rect* rect);
+void GetPortBounds(CGrafPtr port, Rect* rect);
 void ErasePortRect(void);
-Rect* GetControlBounds(ControlHandle ctrl, Rect* rect);
+void GetControlBounds(ControlHandle ctrl, Rect* rect);
 
 static inline void MoveControlByID(int16_t id, WindowPtr dlg, int16_t dx, int16_t dy) {
   Rect r;
