@@ -89,11 +89,18 @@ uint16_t WindowManager_get_ditl_resources(int16_t ditlID, DialogItem** items) {
       case 64: {
         ditlData.read(1); // reserved
         uint16_t pictID = ditlData.get_u16b();
-        auto p = GetPicture(pictID);
-        (*items)[i].type = (*items)[i].DIALOG_ITEM_TYPE_PICT;
-        (*items)[i].dialogItem.pict.dispRect = dispWindow;
-        (*items)[i].dialogItem.pict.enabled = enabled;
-        (*items)[i].dialogItem.pict.p = **p;
+        // TODO: Clean up once all resources are accounted for, see https://github.com/danapplegate/realmz/issues/31
+        try {
+          auto p = GetPicture(pictID);
+          (*items)[i].type = (*items)[i].DIALOG_ITEM_TYPE_PICT;
+          (*items)[i].dialogItem.pict.dispRect = dispWindow;
+          (*items)[i].dialogItem.pict.enabled = enabled;
+          (*items)[i].dialogItem.pict.p = **p;
+        } catch (const std::out_of_range&) {
+          wm_log.error("Could not load PICT:%d resource of DITL:%d, skipping", pictID, ditlID);
+          i--;
+          numItems--;
+        }
         break;
       }
       // Static Text
