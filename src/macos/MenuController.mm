@@ -6,7 +6,7 @@
 #include <resource_file/ResourceFile.hh>
 
 NSMenu* MCCreateMenu(const MenuList& menuList);
-NSMenu* MCCreateSubMenu(NSString* title, const Menu& menuRes);
+NSMenu* MCCreateSubMenu(NSString* title, const Menu& menuRes, const std::list<std::shared_ptr<Menu>> submenus);
 
 void MCSync(std::shared_ptr<MenuList> menuList) {
   NSApplication* application = [NSApplication sharedApplication];
@@ -26,7 +26,7 @@ NSMenu* MCCreateMenu(const MenuList& menuList) {
     menuItem.enabled = menu->enabled;
     [newMenu addItem:menuItem];
     if (menu->items.size()) {
-      NSMenu* subMenu = MCCreateSubMenu(title, *menu);
+      NSMenu* subMenu = MCCreateSubMenu(title, *menu, menuList.submenus);
       [newMenu setSubmenu:subMenu forItem:menuItem];
     }
   }
@@ -34,28 +34,43 @@ NSMenu* MCCreateMenu(const MenuList& menuList) {
   return newMenu;
 }
 
-NSMenu* MCCreateSubMenu(NSString* title, const Menu& menu) {
-  NSMenu* subMenu = [[NSMenu alloc] initWithTitle:title];
-  [subMenu setAutoenablesItems:NO];
+NSMenu* MCCreateSubMenu(NSString* title, const Menu& menu, const std::list<std::shared_ptr<Menu>> submenus) {
+  NSMenu* newMenu = [[NSMenu alloc] initWithTitle:title];
+  [newMenu setAutoenablesItems:NO];
 
   int i = 1;
   for (auto& subMenuItemRes : menu.items) {
     if (subMenuItemRes.name == "-") {
-      [subMenu addItem:[NSMenuItem separatorItem]];
+      [newMenu addItem:[NSMenuItem separatorItem]];
     } else {
       NSString* name = [NSString stringWithCString:subMenuItemRes.name.c_str() encoding:NSMacOSRomanStringEncoding];
       if (name != nullptr) {
         auto s = std::string(&subMenuItemRes.key_equivalent, 1);
         NSString* key = [NSString stringWithUTF8String:s.c_str()];
-        NSMenuItem* subMenuItem = [subMenu addItemWithTitle:name action:NULL keyEquivalent:@""];
+        NSMenuItem* subMenuItem = [newMenu addItemWithTitle:name action:NULL keyEquivalent:@""];
         subMenuItem.enabled = subMenuItemRes.enabled;
         if (subMenuItemRes.checked) {
           subMenuItem.state = NSControlStateValueOn;
+        }
+
+        // Submenu ids are specified by the itemMark field if the itemCmd field has
+        // the value 0x1B
+        // Macintosh Toolbox Essentials (3-96)
+        if (subMenuItemRes.key_equivalent == 0x1B && subMenuItemRes.mark_character) {
+          for (auto subMenuRes : submenus) {
+            if (subMenuRes->menu_id == static_cast<uint8_t>(subMenuItemRes.mark_character)) {
+              NSString* subMenuTitle = [NSString stringWithCString:subMenuRes->title.c_str() encoding:NSMacOSRomanStringEncoding];
+              NSMenu* subMenu = MCCreateSubMenu(subMenuTitle, *subMenuRes, submenus);
+              [newMenu setSubmenu:subMenu forItem:subMenuItem];
+
+              break;
+            }
+          }
         }
       }
     }
     i++;
   }
 
-  return subMenu;
+  return newMenu;
 }
