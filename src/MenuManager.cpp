@@ -153,6 +153,8 @@ void DeleteMenu(int16_t menuID) {
 }
 
 void SetMenuItemText(MenuHandle theMenu, uint16_t item, ConstStr255Param itemString) {
+  auto menu = mm.get_menu(theMenu);
+  menu->items.at(item - 1).name = string_for_pstr<256>(itemString);
 }
 
 int32_t MenuSelect(Point startPt) {
