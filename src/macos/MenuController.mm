@@ -6,7 +6,7 @@
 #include <resource_file/ResourceFile.hh>
 
 NSMenu* MCCreateMenu(const MenuList& menuList);
-NSMenu* MCCreateSubMenu(NSString* title, const ResourceDASM::ResourceFile::DecodedMenu& menuRes);
+NSMenu* MCCreateSubMenu(NSString* title, const Menu& menuRes);
 
 void MCSync(std::shared_ptr<MenuList> menuList) {
   NSApplication* application = [NSApplication sharedApplication];
@@ -20,13 +20,13 @@ NSMenu* MCCreateMenu(const MenuList& menuList) {
   NSMenu* newMenu = [[NSMenu alloc] initWithTitle:@"Realmz"];
   [newMenu setAutoenablesItems:NO];
 
-  for (auto menuRes : menuList.menus) {
-    NSString* title = [NSString stringWithUTF8String:menuRes->title.c_str()];
+  for (auto menu : menuList.menus) {
+    NSString* title = [NSString stringWithUTF8String:menu->title.c_str()];
     NSMenuItem* menuItem = [[NSMenuItem alloc] initWithTitle:title action:NULL keyEquivalent:@""];
-    menuItem.enabled = menuRes->enabled;
+    menuItem.enabled = menu->enabled;
     [newMenu addItem:menuItem];
-    if (menuRes->items.size()) {
-      NSMenu* subMenu = MCCreateSubMenu(title, *menuRes);
+    if (menu->items.size()) {
+      NSMenu* subMenu = MCCreateSubMenu(title, *menu);
       [newMenu setSubmenu:subMenu forItem:menuItem];
     }
   }
@@ -34,11 +34,12 @@ NSMenu* MCCreateMenu(const MenuList& menuList) {
   return newMenu;
 }
 
-NSMenu* MCCreateSubMenu(NSString* title, const ResourceDASM::ResourceFile::DecodedMenu& menuRes) {
+NSMenu* MCCreateSubMenu(NSString* title, const Menu& menu) {
   NSMenu* subMenu = [[NSMenu alloc] initWithTitle:title];
   [subMenu setAutoenablesItems:NO];
 
-  for (auto& subMenuItemRes : menuRes.items) {
+  int i = 1;
+  for (auto& subMenuItemRes : menu.items) {
     if (subMenuItemRes.name == "-") {
       [subMenu addItem:[NSMenuItem separatorItem]];
     } else {
@@ -48,9 +49,12 @@ NSMenu* MCCreateSubMenu(NSString* title, const ResourceDASM::ResourceFile::Decod
         NSString* key = [NSString stringWithUTF8String:s.c_str()];
         NSMenuItem* subMenuItem = [subMenu addItemWithTitle:name action:NULL keyEquivalent:@""];
         subMenuItem.enabled = subMenuItemRes.enabled;
-        [subMenuItem setEnabled:subMenuItemRes.enabled];
+        if (subMenuItemRes.checked) {
+          subMenuItem.state = NSControlStateValueOn;
+        }
       }
     }
+    i++;
   }
 
   return subMenu;

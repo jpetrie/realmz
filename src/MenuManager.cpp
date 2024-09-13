@@ -18,20 +18,20 @@ public:
   MenuManager() = default;
   ~MenuManager() = default;
 
-  std::shared_ptr<ResourceFile::DecodedMenu> get_menu(int16_t res_id) {
+  std::shared_ptr<Menu> get_menu(int16_t res_id) {
     if (!this->res_id_to_menu.contains(res_id)) {
       mm_log.info("Loading MENU:%d from resource forks", res_id);
       auto handle = GetResource(ResourceDASM::RESOURCE_TYPE_MENU, res_id);
-      auto p = std::make_shared<ResourceFile::DecodedMenu>();
-      *p = ResourceFile::decode_MENU(*handle, GetHandleSize(handle));
-      this->res_id_to_menu.emplace(res_id, p);
-      this->handle_to_menu.emplace(handle, p);
-      this->menu_id_to_handle.emplace(p->menu_id, handle);
+      auto decoded_menu = ResourceFile::decode_MENU(*handle, GetHandleSize(handle));
+      auto menu = std::make_shared<Menu>(Menu(decoded_menu));
+      this->res_id_to_menu.emplace(res_id, menu);
+      this->handle_to_menu.emplace(handle, menu);
+      this->menu_id_to_handle.emplace(menu->menu_id, handle);
     }
     return this->res_id_to_menu.at(res_id);
   }
 
-  std::shared_ptr<ResourceFile::DecodedMenu> get_menu(Handle handle) {
+  std::shared_ptr<Menu> get_menu(Handle handle) {
     return this->handle_to_menu.at(handle);
   }
 
@@ -82,11 +82,28 @@ public:
     }
   }
 
+  void remove(int16_t menu_id) {
+    auto& menu_list = this->cur_menu_list->submenus;
+    for (auto m = menu_list.begin(); m != menu_list.end(); m++) {
+      if ((*m)->menu_id == menu_id) {
+        menu_list.erase(m);
+        return;
+      }
+    }
+
+    menu_list = this->cur_menu_list->menus;
+    for (auto m = menu_list.begin(); m != menu_list.end(); m++) {
+      if ((*m)->menu_id == menu_id) {
+        menu_list.erase(m);
+      }
+    }
+  }
+
 private:
   std::shared_ptr<MenuList> cur_menu_list;
   std::unordered_map<Handle, std::shared_ptr<MenuList>> handle_to_menulist;
-  std::unordered_map<MenuHandle, std::shared_ptr<ResourceFile::DecodedMenu>> handle_to_menu;
-  std::unordered_map<int16_t, std::shared_ptr<ResourceFile::DecodedMenu>> res_id_to_menu;
+  std::unordered_map<MenuHandle, std::shared_ptr<Menu>> handle_to_menu;
+  std::unordered_map<int16_t, std::shared_ptr<Menu>> res_id_to_menu;
   std::unordered_map<int16_t, MenuHandle> menu_id_to_handle;
 };
 
@@ -132,6 +149,7 @@ void DrawMenuBar(void) {
 }
 
 void DeleteMenu(int16_t menuID) {
+  mm.remove(menuID);
 }
 
 void SetMenuItemText(MenuHandle theMenu, uint16_t item, ConstStr255Param itemString) {
@@ -168,13 +186,19 @@ void EnableItem(MenuHandle theMenu, uint16_t item) {
 }
 
 void CheckItem(MenuHandle theMenu, uint16_t item, Boolean checked) {
+  auto menu = mm.get_menu(theMenu);
+  if (item > menu->items.size()) {
+    mm_log.warning("Attempted to (un)check MENU:%d item %d, but it doesn't exist", menu->menu_id, item);
+  } else {
+    menu->items.at(item - 1).checked = checked;
+  }
 }
 
 void AppendMenu(MenuHandle menu, ConstStr255Param data) {
-  auto menu_res = mm.get_menu(menu);
+  auto m = mm.get_menu(menu);
   // TODO: Parse menu item format string (Macintosh Toolbox Essentials, 3-65)
   auto s = string_for_pstr<256>(data);
-  auto& item = menu_res->items.emplace_back();
+  auto& item = m->items.emplace_back();
   item.name = s;
 }
 
