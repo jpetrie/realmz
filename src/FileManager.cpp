@@ -3,7 +3,7 @@
 #include <SDL3/SDL_filesystem.h>
 #include <phosg/Strings.hh>
 
-#include "Types.hpp"
+#include "StringConvert.hpp"
 
 static phosg::PrefixedLogger fm_log("[FileManager] ");
 

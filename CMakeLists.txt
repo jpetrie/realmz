@@ -178,9 +178,11 @@ set(SOURCES
     src/realmz_orig/viewcharacter.c
     src/realmz_orig/warn.c
     src/realmz_orig/wear.c
+    src/macos/MenuController.mm
     src/RealmzCocoa.c
     src/FileManager.cpp
     src/MemoryManager.cpp
+    src/MenuManager.cpp
     src/QuickDraw.cpp
     src/ResourceManager.cpp
     src/SoundManager.cpp
@@ -208,12 +210,15 @@ set(DATA_RESOURCE_FILES
     "base/Realmz/Data Files/Combat Data BD"
     "base/Realmz/Data Files/Data AD"
     "base/Realmz/Data Files/Data Caste"
+    "base/Realmz/Data Files/Data Caste.rsrc"
     "base/Realmz/Data Files/Data Castle BD"
     "base/Realmz/Data Files/Data Desert BD"
     "base/Realmz/Data Files/Data ID"
     "base/Realmz/Data Files/Data P BD"
     "base/Realmz/Data Files/Data Race"
+    "base/Realmz/Data Files/Data Race.rsrc"
     "base/Realmz/Data Files/Data S"
+    "base/Realmz/Data Files/Data S.rsrc"
     "base/Realmz/Data Files/Data SUB BD"
     "base/Realmz/Data Files/Data Snow BD"
     "base/Realmz/Data Files/Data Swamp BD"
@@ -248,8 +253,14 @@ endforeach()
 
 target_compile_definitions(Realmz PUBLIC REALMZ_COCOA=1)
 target_compile_options(Realmz PUBLIC -fpascal-strings)
-target_include_directories(Realmz PUBLIC ${SDL3_INCLUDE_DIRS} src src/realmz_orig)
-target_link_libraries(Realmz PUBLIC ${SDL3_LIBRARIES} resource_file::resource_file)
+target_include_directories(Realmz PUBLIC ${SDL3_INCLUDE_DIRS} src src/realmz_orig src/macos)
+target_link_libraries(Realmz
+    PUBLIC
+    ${SDL3_LIBRARIES}
+    resource_file::resource_file
+    "-framework Foundation"
+    "-framework Cocoa"
+)
 
 target_compile_options(Realmz PRIVATE -fsanitize=address)
 target_link_options(Realmz PRIVATE -fsanitize=address)

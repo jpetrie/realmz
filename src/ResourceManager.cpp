@@ -6,7 +6,7 @@
 #include "FileManager.hpp"
 #include "MemoryManager.hpp"
 #include "ResourceManager.h"
-#include "Types.hpp"
+#include "StringConvert.hpp"
 #include <phosg/Filesystem.hh>
 #include <phosg/Strings.hh>
 #include <resource_file/IndexFormats/Formats.hh>
