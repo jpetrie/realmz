@@ -16,6 +16,8 @@
 #include <resource_file/ResourceTypes.hh>
 #include <resource_file/TextCodecs.hh>
 
+static std::unordered_set<int16_t> already_decoded;
+
 Rect rect_from_reader(phosg::StringReader& data) {
   Rect r;
   r.top = data.get_u16b();
@@ -72,6 +74,11 @@ PicHandle GetPicture(int16_t id) {
   // By default, the GetResource call leaves the raw bytes of the resource in data_handle. To
   // satisfy the above, we replace that with the fully decoded Picture resource.
   auto data_handle = GetResource(ResourceDASM::RESOURCE_TYPE_PICT, id);
+
+  if (already_decoded.contains(id)) {
+    return reinterpret_cast<PicHandle>(data_handle);
+  }
+
   auto p = ResourceDASM::ResourceFile::decode_PICT_only(*data_handle, GetHandleSize(data_handle));
 
   if (p.image.get_height() == 0 || p.image.get_width() == 0) {
@@ -80,18 +87,19 @@ PicHandle GetPicture(int16_t id) {
 
   // Have to copy the raw data out of the Image object, so that it doesn't get
   // freed out from under us
-  PicPtr ret = new Picture();
-  ret->picSize = 0; // This is common for Picture objects
-  ret->picFrame.top = 0;
-  ret->picFrame.left = 0;
-  ret->picFrame.bottom = p.image.get_height();
-  ret->picFrame.right = p.image.get_width();
-  ret->data = NewHandleWithData(p.image.get_data(), p.image.get_data_size());
+  auto ret = NewHandleTyped<Picture>();
+  (*ret)->picSize = 0; // This is common for Picture objects
+  (*ret)->picFrame.top = 0;
+  (*ret)->picFrame.left = 0;
+  (*ret)->picFrame.bottom = p.image.get_height();
+  (*ret)->picFrame.right = p.image.get_width();
+  (*ret)->data = NewHandleWithData(p.image.get_data(), p.image.get_data_size());
 
   // Now, free the original data handle buffer with the raw bytes, and change the data_handle
   // to contain the new pointer to the decoded image.
-  delete *data_handle;
-  *data_handle = reinterpret_cast<Ptr>(ret);
+  ReplaceHandle(data_handle, reinterpret_cast<Handle>(ret));
+
+  already_decoded.emplace(id);
 
   return reinterpret_cast<PicHandle>(data_handle);
 }
