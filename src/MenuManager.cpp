@@ -95,6 +95,7 @@ public:
     for (auto m = menu_list.begin(); m != menu_list.end(); m++) {
       if ((*m)->menu_id == menu_id) {
         menu_list.erase(m);
+        return;
       }
     }
   }
