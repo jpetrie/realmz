@@ -520,4 +520,6 @@ OSErr PlotCIcon(const Rect* theRect, CIconHandle theIcon) {
       *((*theIcon)->iconData),
       w, h, *theRect);
   window->sync();
+
+  return noErr;
 }
