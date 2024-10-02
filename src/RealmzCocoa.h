@@ -233,7 +233,6 @@ void FlushEvents(uint16_t whichMask, uint16_t stopMask);
 #define charCodeMask 0x000000FF
 void ModalDialog(ModalFilterProcPtr filterProc, short* itemHit);
 int16_t TrackControl(ControlHandle theControl, Point thePoint, ProcPtr actionProc);
-void GetDialogItem(DialogPtr theDialog, int16_t itemNo, int16_t* itemType, Handle* item, Rect* box);
 void SelectDialogItemText(DialogPtr theDialog, int16_t itemNo, int16_t strtSel, int16_t endSel);
 void SetDialogItemText(Handle item, ConstStr255Param text);
 void GetDialogItemText(Handle item, Str255 text);

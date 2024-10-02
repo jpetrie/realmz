@@ -165,9 +165,6 @@ void HUnlock(Handle h) {
 void BeginUpdate(WindowPtr theWindow) {
 }
 
-void GetDialogItem(DialogPtr theDialog, short itemNo, short* itemType, Handle* item, Rect* box) {
-}
-
 Boolean IsDialogEvent(const EventRecord* theEvent) {
   return FALSE;
 }

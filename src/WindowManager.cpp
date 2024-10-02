@@ -523,3 +523,17 @@ OSErr PlotCIcon(const Rect* theRect, CIconHandle theIcon) {
 
   return noErr;
 }
+
+void GetDialogItem(DialogPtr theDialog, short itemNo, short* itemType, Handle* item, Rect* box) {
+  auto windowRecord = reinterpret_cast<CWindowRecord*>(theDialog);
+  if (itemNo > windowRecord->numItems) {
+    wm_log.error("Called GetDialogItem for itemNo %d on dialog %p that only has %d items", itemNo, theDialog, windowRecord->numItems);
+    return;
+  }
+
+  auto foundItem = windowRecord->dItems[itemNo - 1];
+
+  // TODO: Figure out best way to return a handle to the foundItem in item
+  *itemType = foundItem.type;
+  *box = foundItem.dispRect;
+}
