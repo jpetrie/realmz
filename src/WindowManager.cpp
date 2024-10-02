@@ -434,6 +434,8 @@ void WindowManager_DrawDialog(WindowPtr theWindow) {
     }
   }
 
+  window->sync();
+
   SDL_Event e;
   bool quit = false;
 
@@ -517,4 +519,5 @@ OSErr PlotCIcon(const Rect* theRect, CIconHandle theIcon) {
   window->draw_rgba_picture(
       (*theIcon)->iconData,
       w, h, *theRect);
+  window->sync();
 }
