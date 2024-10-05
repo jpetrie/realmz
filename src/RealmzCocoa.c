@@ -146,10 +146,6 @@ CWindowPtr GetNewCWindow(int16_t res_id, void* wStorage, WindowPtr behind) {
   return WindowManager_CreateNewWindow(res_id, false, behind);
 }
 
-Boolean GetNextEvent(uint16_t eventMask, EventRecord* theEvent) {
-  return FALSE;
-}
-
 void HLockHi(Handle h) {
 }
 
@@ -174,11 +170,11 @@ Boolean DialogSelect(const EventRecord* theEvent, DialogPtr* theDialog, short* i
 }
 
 int16_t HiWord(int32_t x) {
-  return 0;
+  return (int16_t)(x >> 16);
 }
 
 int16_t LoWord(int32_t x) {
-  return 0;
+  return (int16_t)(x & 0xFFFF);
 }
 
 void SetPt(Point* pt, int16_t h, int16_t v) {
@@ -193,6 +189,9 @@ int32_t MenuKey(int16_t ch) {
 }
 
 int16_t FindWindow(Point thePoint, WindowPtr* theWindow) {
+  if (thePoint.v < 0 && thePoint.h < 0) {
+    return inMenuBar;
+  }
   return 0;
 }
 
@@ -284,6 +283,7 @@ Boolean PtInRect(Point pt, const Rect* r) {
 }
 
 void ExitToShell(void) {
+  exit(EXIT_SUCCESS);
 }
 
 void LocalToGlobal(Point* pt) {

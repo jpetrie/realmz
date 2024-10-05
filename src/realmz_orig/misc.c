@@ -794,13 +794,22 @@ void savecharacter(short who) {
 /*************************** setfileinfo ***********/
 void setfileinfo(char type[4], char filename[256]) {
   FSSpec fsp;
-  CtoPstr(filename);
-  FSMakeFSSpec(0, 0, filename, &fsp);
+  /* *** CHANGED FROM ORIGINAL IMPLEMENTATION ***
+   * NOTE(danapplegate): Some invocations of setfileinfo pass a string literal
+   * as the filename, which CtoPstr attempts to modify in-place, causing an invalid write
+   * to program memory. Instead, we make a copy on the heap, modify that, and
+   * eliminate the PtoCstr call that restores the filename at the end of function as well.
+   */
+  char* local_filename = strdup(filename);
+  CtoPstr(local_filename);
+  FSMakeFSSpec(0, 0, (unsigned char*)local_filename, &fsp);
   FSpGetFInfo(&fsp, &fileinfo);
   fileinfo.fdType = *(OSType*)type;
   fileinfo.fdCreator = 'RLMZ';
   FSpSetFInfo(&fsp, &fileinfo);
-  PtoCstr((StringPtr)filename);
+  free(local_filename);
+  // PtoCstr((StringPtr)filename);
+  /* *** END CHANGES *** */
 }
 
 /***************************** calcw ********************************/
