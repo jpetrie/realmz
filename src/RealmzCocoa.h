@@ -18,6 +18,7 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "EventManager.h"
 #include "FileManager.h"
 #include "MemoryManager.h"
 #include "MenuManager-C-Interface.h"
@@ -107,10 +108,6 @@ static inline void rintel2moto(Rect* r) {
 #define kControlPageUpPart 22
 #define kControlPageDownPart 23
 #define kControlIndicatorPart 129
-
-#define inMenuBar 1
-#define inSysWindow 2
-#define inContent 3
 
 #define resNotFound -192
 
@@ -243,7 +240,6 @@ int32_t DragGrayRgn(RgnHandle theRgn, Point startPt, const Rect* boundsRect, con
     int16_t axis, Ptr actionProc);
 void ParamText(ConstStr255Param param0, ConstStr255Param param1, ConstStr255Param param2, ConstStr255Param param3);
 void SystemTask(void);
-Boolean GetNextEvent(uint16_t eventMask, EventRecord* theEvent);
 void DisposeDialog(DialogPtr theDialog);
 void ExitToShell(void);
 OSErr SetDepth(GDHandle aDevice, uint16_t depth, uint16_t whichFlags, uint16_t flags);

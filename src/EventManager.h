@@ -19,6 +19,13 @@
 #define app2Evt 259
 #define app3Evt 260
 
+#define inMenuBar 1
+#define inSysWindow 2
+#define inContent 3
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 typedef struct {
   uint16_t what;
   uint32_t message;
@@ -26,3 +33,10 @@ typedef struct {
   Point where;
   uint16_t modifiers;
 } EventRecord;
+
+void PushMenuEvent(int16_t menu_id, int16_t item_id);
+Boolean GetNextEvent(uint16_t eventMask, EventRecord* theEvent);
+
+#ifdef __cplusplus
+}
+#endif

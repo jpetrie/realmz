@@ -181,6 +181,7 @@ set(SOURCES
     src/realmz_orig/wear.c
     src/macos/MenuController.mm
     src/RealmzCocoa.c
+    src/EventManager.cpp
     src/FileManager.cpp
     src/MemoryManager.cpp
     src/MenuManager.cpp

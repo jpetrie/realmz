@@ -1,4 +1,5 @@
 #include "MenuManager.hpp"
+#include "EventManager.h"
 #include "MemoryManager.hpp"
 #include "MenuManager-C-Interface.h"
 #include "ResourceManager.h"
@@ -9,9 +10,9 @@
 #include <resource_file/ResourceFile.hh>
 #include <stdexcept>
 
-static phosg::PrefixedLogger mm_log("[MenuManager] ");
-
 using ResourceDASM::ResourceFile;
+
+static phosg::PrefixedLogger mm_log("[MenuManager] ");
 
 class MenuManager {
 public:
@@ -78,7 +79,7 @@ public:
 
   void sync(void) {
     if (this->cur_menu_list != nullptr) {
-      MCSync(this->cur_menu_list);
+      MCSync(this->cur_menu_list, &PushMenuEvent);
     }
   }
 
@@ -163,7 +164,10 @@ void SetMenuItemText(MenuHandle theMenu, uint16_t item, ConstStr255Param itemStr
 }
 
 int32_t MenuSelect(Point startPt) {
-  return 0;
+  int16_t menu_id = -startPt.v;
+  int16_t item_id = -startPt.h;
+  mm_log.info("Clicked menu %d, item %d", menu_id, item_id);
+  return (static_cast<int32_t>(menu_id) << 16) + item_id;
 }
 
 void DisableItem(MenuHandle theMenu, uint16_t item) {
