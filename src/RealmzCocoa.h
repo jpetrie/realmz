@@ -224,10 +224,8 @@ void SysBeep(uint16_t duration);
 void ModalDialog(ModalFilterProcPtr filterProc, short* itemHit);
 int16_t TrackControl(ControlHandle theControl, Point thePoint, ProcPtr actionProc);
 void SelectDialogItemText(DialogPtr theDialog, int16_t itemNo, int16_t strtSel, int16_t endSel);
-void SetDialogItemText(Handle item, ConstStr255Param text);
 RgnHandle NewRgn(void);
 void RectRgn(RgnHandle rgn, const Rect* r);
-Boolean PtInRect(Point pt, const Rect* r);
 int32_t DragGrayRgn(RgnHandle theRgn, Point startPt, const Rect* boundsRect, const Rect* slopRect,
     int16_t axis, Ptr actionProc);
 void ParamText(ConstStr255Param param0, ConstStr255Param param1, ConstStr255Param param2, ConstStr255Param param3);
