@@ -19,41 +19,93 @@ using ResourceDASM::ResourceFile;
 static phosg::PrefixedLogger wm_log("[WindowManager] ");
 static std::unordered_map<int16_t, TTF_Font*> fonts_by_id;
 
+using DialogItemType = ResourceDASM::ResourceFile::DecodedDialogItem::Type;
+
+int16_t macos_dialog_item_type_for_resource_dasm_type(DialogItemType type) {
+  switch (type) {
+    case DialogItemType::BUTTON:
+      return 4;
+    case DialogItemType::CHECKBOX:
+      return 5;
+    case DialogItemType::RADIO_BUTTON:
+      return 6;
+    case DialogItemType::RESOURCE_CONTROL:
+      return 7;
+    case DialogItemType::TEXT:
+      return 8;
+    case DialogItemType::EDIT_TEXT:
+      return 16;
+    case DialogItemType::ICON:
+      return 32;
+    case DialogItemType::PICTURE:
+      return 64;
+    case DialogItemType::CUSTOM:
+      return 0;
+    default:
+      throw std::logic_error("Unknown dialog item type");
+  }
+}
+
+// This structure is "private" (not accessible in C) because it isn't directly
+// used there: Realmz only interacts with dialog items through syscalls and
+// handles, so we can use C++ types here without breaking anything.
+struct DialogItem {
+  int16_t ditl_resource_id;
+  size_t item_id;
+  DialogItemType type;
+  std::string text;
+  int16_t resource_id;
+  Rect rect;
+  bool enabled;
+
+  DialogItem(int16_t ditl_res_id, size_t item_id, const ResourceDASM::ResourceFile::DecodedDialogItem& def)
+      : ditl_resource_id(ditl_res_id),
+        item_id(item_id),
+        type(def.type),
+        text(def.text),
+        resource_id(def.resource_id),
+        enabled(def.enabled) {
+    this->rect.left = def.bounds.x1;
+    this->rect.right = def.bounds.x2;
+    this->rect.top = def.bounds.y1;
+    this->rect.bottom = def.bounds.y2;
+  }
+
+  static std::vector<DialogItem> from_DITL(int16_t ditl_resource_id) {
+    auto data_handle = GetResource(ResourceDASM::RESOURCE_TYPE_DITL, ditl_resource_id);
+    auto defs = ResourceDASM::ResourceFile::decode_DITL(*data_handle, GetHandleSize(data_handle));
+
+    std::vector<DialogItem> ret;
+    for (const auto& def : defs) {
+      size_t item_id = ret.size() + 1;
+      ret.emplace_back(ditl_resource_id, item_id, def);
+    }
+    return ret;
+  }
+};
+
 class WindowManager {
 public:
   class Window {
   public:
     Window() = default;
-    Window(std::string title, const Rect& bounds, SDL_WindowFlags flags)
+    Window(std::string title, const Rect& bounds, SDL_WindowFlags flags, std::shared_ptr<std::vector<DialogItem>> dialog_items)
         : title{title},
           bounds{bounds},
-          flags{flags} {}
-
-    ~Window() {
-      SDL_DestroyTexture(this->sdlTexture);
-      SDL_DestroyRenderer(this->sdlRenderer);
-      SDL_DestroyWindow(this->sdlWindow);
-    }
-
-    void init() {
+          flags{flags},
+          dialog_items{dialog_items} {
       w = bounds.right - bounds.left;
       h = bounds.bottom - bounds.top;
-      sdlWindow = SDL_CreateWindow(
-          title.c_str(),
-          w,
-          h,
-          flags);
+      sdlWindow = SDL_CreateWindow(title.c_str(), w, h, flags);
 
       if (sdlWindow == NULL) {
-        wm_log.error("Could not create window: %s\n", SDL_GetError());
-        return;
+        throw std::runtime_error(phosg::string_printf("Could not create window: %s\n", SDL_GetError()));
       }
 
       sdlRenderer = SDL_CreateRenderer(sdlWindow, "opengl");
 
       if (sdlRenderer == NULL) {
-        wm_log.error("could not create renderer: %s\n", SDL_GetError());
-        return;
+        throw std::runtime_error(phosg::string_printf("Could not create window renderer: %s\n", SDL_GetError()));
       }
 
       // We'll use this texture as our own backbuffer, see
@@ -64,12 +116,18 @@ public:
           SDL_TEXTUREACCESS_TARGET, w, h);
 
       if (sdlTexture == NULL) {
-        wm_log.error("could not create window texture: %s\n", SDL_GetError());
+        throw std::runtime_error(phosg::string_printf("Could not create window texture: %s\n", SDL_GetError()));
       }
 
       // Default to rendering all draw calls to the intermediate texture buffer
       SDL_SetRenderTarget(sdlRenderer, sdlTexture);
       SDL_RenderClear(sdlRenderer);
+    }
+
+    ~Window() {
+      SDL_DestroyTexture(this->sdlTexture);
+      SDL_DestroyRenderer(this->sdlRenderer);
+      SDL_DestroyWindow(this->sdlWindow);
     }
 
     void sync(void) {
@@ -104,14 +162,15 @@ public:
       SDL_RenderTexture(sdlRenderer, t, NULL, &dest);
     }
 
-    bool draw_text(Str255 text, const Rect& dispRect) {
+    bool draw_text(const std::string& text, const Rect& dispRect) {
       // TTF_Font* font = fonts_by_id.at(port->txFont);
       TTF_Font* font = fonts_by_id.at(1601);
       RGBColor fore_color;
       GetForeColor(&fore_color);
-      SDL_Surface* text_surface = TTF_RenderUTF8_Blended_Wrapped(
+      SDL_Surface* text_surface = TTF_RenderText_Blended_Wrapped(
           font,
-          string_for_pstr<256>(text).c_str(),
+          text.data(),
+          text.size(),
           SDL_Color{
               static_cast<uint8_t>(fore_color.red / 0x0101),
               static_cast<uint8_t>(fore_color.green / 0x0101),
@@ -166,12 +225,21 @@ public:
       SDL_SyncWindow(sdlWindow);
     }
 
+    SDL_WindowID sdl_window_id() const {
+      return SDL_GetWindowID(this->sdlWindow);
+    }
+
+    std::shared_ptr<std::vector<DialogItem>> get_dialog_items() {
+      return this->dialog_items;
+    }
+
   private:
     std::string title;
     Rect bounds;
     int w;
     int h;
     SDL_WindowFlags flags;
+    std::shared_ptr<std::vector<DialogItem>> dialog_items;
     SDL_Window* sdlWindow;
     SDL_Renderer* sdlRenderer;
     SDL_Texture* sdlTexture; // Use a texture to hold the window's rendered state
@@ -187,40 +255,56 @@ public:
       bool go_away,
       int16_t proc_id,
       uint32_t ref_con,
-      uint16_t num_dialog_items,
-      DialogItem* dialog_items,
+      std::shared_ptr<std::vector<DialogItem>> dialog_items,
       SDL_WindowFlags flags) {
     CGrafPort port{};
     port.portRect = bounds;
     CWindowRecord* wr = new CWindowRecord();
     wr->port = port;
+
+    // Note: Realmz doesn't actually use any of the following fields; we also
+    // don't use numItems and dItems internally here (we instead use the vector
+    // in the Window struct)
     wr->visible = visible;
     wr->goAwayFlag = go_away;
     wr->windowKind = proc_id;
     wr->refCon = ref_con;
-    wr->numItems = num_dialog_items;
-    wr->dItems = dialog_items;
+    if (dialog_items) {
+      wr->numItems = dialog_items->size();
+      wr->dItems = dialog_items->data();
+    } else {
+      wr->numItems = 0;
+      wr->dItems = nullptr;
+    }
 
-    std::shared_ptr<Window> window = std::make_shared<Window>(title, bounds, flags);
+    std::shared_ptr<Window> window = std::make_shared<Window>(title, bounds, flags, dialog_items);
     record_to_window.emplace(&wr->port, window);
-    window->init();
+    sdl_window_id_to_window.emplace(window->sdl_window_id(), window);
 
     return &wr->port;
   }
 
   void destroy_window(WindowPtr record) {
-    record_to_window.erase(record);
+    auto window_it = record_to_window.find(record);
+    if (window_it == record_to_window.end()) {
+      throw std::logic_error("Attempted to delete nonexistent window");
+    }
+    sdl_window_id_to_window.erase(window_it->second->sdl_window_id());
+    record_to_window.erase(window_it);
     CWindowRecord* const window = reinterpret_cast<CWindowRecord*>(record);
-    free(window->dItems);
     delete window;
   }
 
   std::shared_ptr<Window> window_for_record(WindowPtr record) {
-    return record_to_window.at(record);
+    return this->record_to_window.at(record);
+  }
+  std::shared_ptr<Window> window_for_sdl_window_id(SDL_WindowID window_id) {
+    return this->sdl_window_id_to_window.at(window_id);
   }
 
 private:
   std::unordered_map<WindowPtr, std::shared_ptr<Window>> record_to_window;
+  std::unordered_map<SDL_WindowID, std::shared_ptr<Window>> sdl_window_id_to_window;
 };
 
 static WindowManager wm;
@@ -297,66 +381,6 @@ void copy_rect(Rect& dst, ResourceDASM::Rect& src) {
   dst.right = src.x2;
 }
 
-// See Macintosh Toolbox Essentials, 6-151
-uint16_t WindowManager_get_ditl_resources(int16_t ditlID, DialogItem** items) {
-  auto data_handle = GetResource(ResourceDASM::RESOURCE_TYPE_DITL, ditlID);
-  auto ditl = ResourceDASM::ResourceFile::decode_DITL(*data_handle, GetHandleSize(data_handle));
-  auto num_items = ditl.size();
-  *items = reinterpret_cast<DialogItem*>(calloc(num_items, sizeof(DialogItem)));
-
-  int i = 0;
-  for (auto& ditl_item : ditl) {
-    auto& item = (*items)[i++];
-    copy_rect(item.dispRect, ditl_item.bounds);
-    item.resource_id = ditl_item.resource_id;
-    item.enabled = ditl_item.enabled;
-
-    switch (ditl_item.type) {
-      case ResourceFile::DecodedDialogItem::Type::BUTTON: // text valid
-        item.type = DialogItem::TYPE::DIALOG_ITEM_BUTTON;
-        item.dialogItem.textual.text[0] = ditl_item.text.size();
-        break;
-      case ResourceFile::DecodedDialogItem::Type::CHECKBOX: // text valid
-        item.type = DialogItem::TYPE::DIALOG_ITEM_CHECKBOX;
-        item.dialogItem.textual.text[0] = ditl_item.text.size();
-        break;
-      case ResourceFile::DecodedDialogItem::Type::RADIO_BUTTON: // text valid
-        item.type = DialogItem::TYPE::DIALOG_ITEM_RADIO_BUTTON;
-        item.dialogItem.textual.text[0] = ditl_item.text.size();
-        break;
-      case ResourceFile::DecodedDialogItem::Type::TEXT: // text valid
-        item.type = DialogItem::TYPE::DIALOG_ITEM_TEXT;
-        pstr_for_string<256>(item.dialogItem.textual.text, ditl_item.text);
-        break;
-      case ResourceFile::DecodedDialogItem::Type::EDIT_TEXT: // text valid
-        item.type = DialogItem::TYPE::DIALOG_ITEM_EDIT_TEXT;
-        item.dialogItem.textual.text[0] = ditl_item.text.size();
-        break;
-      case ResourceFile::DecodedDialogItem::Type::UNKNOWN: // text contains raw info string (may be binary data!)
-        item.type = DialogItem::TYPE::DIALOG_ITEM_UNKNOWN;
-        item.dialogItem.textual.text[0] = ditl_item.text.size();
-        break;
-      case ResourceFile::DecodedDialogItem::Type::RESOURCE_CONTROL: // resource_id valid
-        item.type = DialogItem::TYPE::DIALOG_ITEM_RESOURCE_CONTROL;
-        item.dialogItem.resource.res_id = ditl_item.resource_id;
-        break;
-      case ResourceFile::DecodedDialogItem::Type::ICON: // resource_id valid
-        item.type = DialogItem::TYPE::DIALOG_ITEM_ICON;
-        item.dialogItem.resource.res_id = ditl_item.resource_id;
-        break;
-      case ResourceFile::DecodedDialogItem::Type::PICTURE: // resource_id valid
-        item.type = DialogItem::TYPE::DIALOG_ITEM_PICTURE;
-        item.dialogItem.resource.res_id = ditl_item.resource_id;
-        break;
-      case ResourceFile::DecodedDialogItem::Type::CUSTOM: // neither resource_id nor text valid
-      default:
-        break;
-    }
-  }
-
-  return num_items;
-}
-
 void WindowManager_Init(void) {
   if (!SDL_Init(SDL_INIT_VIDEO)) {
     wm_log.error("Couldn't initialize video driver: %s\n", SDL_GetError());
@@ -377,7 +401,7 @@ WindowPtr WindowManager_CreateNewWindow(int16_t res_id, bool is_dialog, WindowPt
   bool go_away;
   uint32_t ref_con;
   size_t num_dialog_items;
-  DialogItem* dialog_items;
+  std::shared_ptr<std::vector<DialogItem>> dialog_items;
 
   if (is_dialog) {
     auto data_handle = GetResource(ResourceDASM::RESOURCE_TYPE_DLOG, res_id);
@@ -391,7 +415,7 @@ WindowPtr WindowManager_CreateNewWindow(int16_t res_id, bool is_dialog, WindowPt
     visible = dlog.visible;
     go_away = dlog.go_away;
     ref_con = dlog.ref_con;
-    num_dialog_items = WindowManager_get_ditl_resources(dlog.items_id, &dialog_items);
+    dialog_items = make_shared<std::vector<DialogItem>>(DialogItem::from_DITL(dlog.items_id));
 
   } else {
     auto data_handle = GetResource(ResourceDASM::RESOURCE_TYPE_WIND, res_id);
@@ -405,8 +429,6 @@ WindowPtr WindowManager_CreateNewWindow(int16_t res_id, bool is_dialog, WindowPt
     visible = wind.visible;
     go_away = wind.go_away;
     ref_con = wind.ref_con;
-    num_dialog_items = 0;
-    dialog_items = nullptr;
   }
 
   SDL_WindowFlags flags{};
@@ -422,7 +444,6 @@ WindowPtr WindowManager_CreateNewWindow(int16_t res_id, bool is_dialog, WindowPt
       go_away,
       proc_id,
       ref_con,
-      num_dialog_items,
       dialog_items,
       flags);
 }
@@ -437,62 +458,37 @@ void WindowManager_DrawDialog(WindowPtr theWindow) {
     window->draw_background(port->bkPixPat);
   }
 
-  for (int i = 0; i < windowRecord->numItems; i++) {
-    DialogItem di = windowRecord->dItems[i];
-
-    switch (di.type) {
-      case DialogItem::TYPE::DIALOG_ITEM_PICTURE: {
-        auto pict = **GetPicture(di.dialogItem.resource.res_id);
-        Rect r = pict.picFrame;
-        uint32_t w = r.right - r.left;
-        uint32_t h = r.bottom - r.top;
-        window->draw_rgba_picture(*pict.data, w, h, di.dispRect);
-        break;
-      }
-      case DialogItem::TYPE::DIALOG_ITEM_TEXT: {
-        if (di.dialogItem.textual.text[0] < 1) {
-          continue;
+  auto items = window->get_dialog_items();
+  if (items) {
+    for (const auto& di : *items) {
+      switch (di.type) {
+        case DialogItemType::PICTURE: {
+          auto pict = **GetPicture(di.resource_id);
+          Rect r = pict.picFrame;
+          uint32_t w = r.right - r.left;
+          uint32_t h = r.bottom - r.top;
+          window->draw_rgba_picture(*pict.data, w, h, di.rect);
+          break;
         }
-        CGrafPtr port;
-        GetPort(reinterpret_cast<GrafPtr*>(&port));
-        if (!window->draw_text(di.dialogItem.textual.text, di.dispRect)) {
-          wm_log.error("Error when rendering text item %d: %s", di.resource_id, SDL_GetError());
-          continue;
+        case DialogItemType::TEXT: {
+          if (di.text.empty()) {
+            continue;
+          }
+          CGrafPtr port;
+          GetPort(reinterpret_cast<GrafPtr*>(&port));
+          if (!window->draw_text(di.text, di.rect)) {
+            wm_log.error("Error when rendering text item %d: %s", di.resource_id, SDL_GetError());
+          }
+          break;
         }
-        break;
+        default:
+          // TODO: Render other DITL types
+          break;
       }
-      default:
-        // TODO: Render other DITL types
-        break;
     }
   }
 
   window->sync();
-}
-
-bool WindowManager_WaitNextEvent(EventRecord* theEvent) {
-  SDL_Event e;
-  SDL_bool success = SDL_PollEvent(&e);
-
-  if (success == SDL_FALSE) {
-    theEvent->what = nullEvent;
-    return false;
-  }
-
-  switch (e.type) {
-    case SDL_EVENT_MOUSE_BUTTON_DOWN:
-      theEvent->what = mouseDown;
-      theEvent->when = 60 * e.common.timestamp / 1000000000;
-      theEvent->where.h = e.button.x;
-      theEvent->where.v = e.button.y;
-      break;
-    default:
-      theEvent->what = nullEvent;
-      return false;
-      break;
-  }
-
-  return true;
 }
 
 void WindowManager_MoveWindow(WindowPtr theWindow, uint16_t hGlobal, uint16_t vGlobal, bool front) {
@@ -546,26 +542,75 @@ OSErr PlotCIcon(const Rect* theRect, CIconHandle theIcon) {
   return noErr;
 }
 
-void GetDialogItem(DialogPtr theDialog, short itemNo, short* itemType, Handle* item, Rect* box) {
-  auto windowRecord = reinterpret_cast<CWindowRecord*>(theDialog);
-  if (itemNo > windowRecord->numItems) {
-    wm_log.error("Called GetDialogItem for itemNo %d on dialog %p that only has %d items", itemNo, theDialog, windowRecord->numItems);
-    return;
+void GetDialogItem(DialogPtr dialog, short item_id, short* item_type, Handle* item_handle, Rect* box) {
+  auto window = wm.window_for_record(reinterpret_cast<WindowPtr>(dialog));
+  auto items = window->get_dialog_items();
+  if (!items) {
+    throw std::logic_error("GetDialogItem called on non-dialog window");
   }
 
-  auto foundItem = windowRecord->dItems[itemNo - 1];
-
-  // TODO: Figure out best way to return a handle to the foundItem in item
-  *item = reinterpret_cast<Handle>(&foundItem);
-  *itemType = foundItem.type;
-  *box = foundItem.dispRect;
+  try {
+    auto& item = items->at(item_id - 1);
+    // Realmz doesn't use the handle directly; it only passes the handle to other
+    // Classic Mac OS API functions. So, we can just return the DialogItem
+    // pointer directly instead of a real Handle.
+    *item_type = macos_dialog_item_type_for_resource_dasm_type(item.type);
+    *item_handle = reinterpret_cast<Handle>(&item);
+    *box = item.rect;
+  } catch (const std::out_of_range&) {
+    wm_log.warning("GetDialogItem called with invalid item_id %hd (there are only %zu items)", item_id, items->size());
+  }
 }
 
-void GetDialogItemText(Handle item, Str255 text) {
-  auto i = reinterpret_cast<DialogItem*>(item);
-  memcpy(text, i->dialogItem.textual.text, i->dialogItem.textual.text[0]);
+void GetDialogItemText(Handle item_handle, Str255 text) {
+  // See comment in GetDialogItem about why this isn't a real Handle
+  auto* item = reinterpret_cast<DialogItem*>(item_handle);
+  pstr_for_string<256>(text, item->text);
+}
+
+void SetDialogItemText(Handle item_handle, ConstStr255Param text) {
+  // See comment in GetDialogItem about why this isn't a real Handle
+  auto* item = reinterpret_cast<DialogItem*>(item_handle);
+  item->text = string_for_pstr<256>(text);
 }
 
 int16_t StringWidth(ConstStr255Param s) {
   return s[0];
+}
+
+Boolean IsDialogEvent(const EventRecord* ev) {
+  if (ev->what != nullEvent) {
+    fprintf(stderr, "Non-null event\n");
+  }
+  try {
+    auto window = wm.window_for_sdl_window_id(ev->sdl_window_id);
+    return (window->get_dialog_items() != nullptr);
+  } catch (const std::out_of_range&) {
+    return false;
+  }
+}
+
+Boolean DialogSelect(const EventRecord* ev, DialogPtr* dialog, short* item_hit) {
+  try {
+    auto window = wm.window_for_sdl_window_id(ev->sdl_window_id);
+    auto items = window->get_dialog_items();
+    if (!items) {
+      throw std::logic_error("DialogSelect called on non-dialog window");
+    }
+    for (size_t z = 0; z < items->size(); z++) {
+      const auto& item = items->at(z);
+      if (item.enabled && PtInRect(ev->where, &item.rect)) {
+        *item_hit = item.item_id;
+        return true;
+      }
+    }
+  } catch (const std::out_of_range&) {
+  }
+  return false;
+}
+
+void SystemClick(const EventRecord* theEvent, WindowPtr theWindow) {
+  // This is used for handling events in windows belonging to the system, other
+  // applications, or desk accessories. On modern systems we never see these
+  // events, so we can just do nothing here.
 }

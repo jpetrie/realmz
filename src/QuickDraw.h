@@ -19,6 +19,8 @@
 extern "C" {
 #endif // __cplusplus
 
+typedef Handle RgnHandle;
+
 /*
  A pixel map, which is defined by a data structure of type PixMap, contains information about the
  dimensions and contents of a pixel image, as well as information on the image’s storage format,
@@ -113,6 +115,7 @@ typedef struct {
   CGrafHandle default_graf_handle;
 } QuickDrawGlobals;
 
+Boolean PtInRect(Point pt, const Rect* r);
 // Note: Technically the argument to InitGraf is a void*, but we type it here
 // for better safety.
 void InitGraf(QuickDrawGlobals* globalPtr);

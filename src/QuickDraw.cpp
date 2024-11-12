@@ -30,6 +30,10 @@ Rect rect_from_reader(phosg::StringReader& data) {
   return r;
 }
 
+Boolean PtInRect(Point pt, const Rect* r) {
+  return (pt.v >= r->top) && (pt.h >= r->left) && (pt.v < r->bottom) && (pt.h < r->right);
+}
+
 RGBColor color_const_to_rgb(int32_t color_const) {
   switch (color_const) {
     case whiteColor:
@@ -74,7 +78,9 @@ PixPatHandle GetPixPat(uint16_t patID) {
 
   // Our pattern drawing code expects ppat image data to be RGB24. We want to know if
   // this doesn't turn out to be the case, perhaps in a scenario's resource fork data
-  assert(!pattern.pattern.get_has_alpha());
+  if (pattern.pattern.get_has_alpha()) {
+    throw std::logic_error("Decoded ppat image has alpha channel");
+  }
 
   auto ret_handle = NewHandleTyped<PixPat>();
   auto& ret = **ret_handle;
