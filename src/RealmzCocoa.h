@@ -227,7 +227,6 @@ typedef ProcessInfoRec* ProcessInfoRecPtr;
 void LocalToGlobal(Point* pt);
 PixPatHandle GetPixPat(uint16_t patID);
 GDHandle GetMainDevice(void);
-DialogPtr GetNewDialog(uint16_t dialogID, void* dStorage, WindowPtr behind);
 
 void SysBeep(uint16_t duration);
 #define charCodeMask 0x000000FF
@@ -251,10 +250,6 @@ CCrsrHandle GetCCursor(uint16_t crsrID);
 void SetCCursor(CCrsrHandle cCrsr);
 void HLock(Handle h);
 void HUnlock(Handle h);
-WindowPtr GetNewCWindow(int16_t windowID, void* wStorage, WindowPtr behind);
-void SizeWindow(WindowPtr theWindow, uint16_t w, uint16_t h, Boolean fUpdate);
-void MoveWindow(WindowPtr theWindow, uint16_t hGlobal, uint16_t vGlobal, Boolean front);
-void ShowWindow(WindowPtr theWindow);
 WindowPtr FrontWindow(void);
 void TextFont(uint16_t font);
 int32_t MenuKey(int16_t ch);

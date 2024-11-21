@@ -131,14 +131,6 @@ GDHandle GetMainDevice(void) {
   return &gDevicePtr;
 }
 
-DialogPtr GetNewDialog(uint16_t res_id, void* dStorage, WindowPtr behind) {
-  return WindowManager_CreateNewWindow(res_id, true, behind);
-}
-
-CWindowPtr GetNewCWindow(int16_t res_id, void* wStorage, WindowPtr behind) {
-  return WindowManager_CreateNewWindow(res_id, false, behind);
-}
-
 void HLockHi(Handle h) {
 }
 
@@ -184,9 +176,6 @@ void HiliteMenu(int16_t menuID) {
 }
 
 void SetItemIcon(MenuHandle theMenu, int16_t item, int16_t iconIndex) {
-}
-
-void LineTo(int16_t h, int16_t v) {
 }
 
 void DisposeWindow(WindowPtr theWindow) {
@@ -302,10 +291,6 @@ int16_t CountMItems(MenuHandle theMenu) {
 void ModalDialog(ModalFilterProcPtr filterProc, short* itemHit) {
 }
 
-void MoveWindow(WindowPtr theWindow, uint16_t hGlobal, uint16_t vGlobal, Boolean front) {
-  WindowManager_MoveWindow(theWindow, hGlobal, vGlobal, front);
-}
-
 void CopyMask(const BitMap* srcBits, const BitMap* maskBits, const BitMap* dstBits, const Rect* srcRect, const Rect* maskRect,
     const Rect* dstRect) {
 }
@@ -355,14 +340,6 @@ void SetRect(Rect* r, uint16_t left, uint16_t top, uint16_t right, uint16_t bott
   r->top = top,
   r->right = right;
   r->bottom = bottom;
-}
-
-void ShowWindow(WindowPtr theWindow) {
-}
-
-void SizeWindow(CWindowPtr theWindow, uint16_t w, uint16_t h, Boolean fUpdate) {
-  theWindow->portRect.right = theWindow->portRect.left + w;
-  theWindow->portRect.bottom = theWindow->portRect.top + h;
 }
 
 OSErr StartFading(GammaRef* returnedInitialState) {
