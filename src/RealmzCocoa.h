@@ -181,15 +181,9 @@ typedef struct {
 } GDevice;
 
 typedef struct {
-  Rect contrlRect;
-} ControlRecord;
-
-typedef struct {
 } ColorTable;
 
 typedef GDevice *GDPtr, **GDHandle;
-typedef ControlRecord* ControlPtr;
-typedef ControlPtr* ControlHandle;
 typedef ColorTable* CTabPtr;
 typedef CTabPtr* CTabHandle;
 typedef Handle GammaTblHandle;
@@ -240,10 +234,8 @@ void SysBeep(uint16_t duration);
 void ModalDialog(ModalFilterProcPtr filterProc, short* itemHit);
 int16_t TrackControl(ControlHandle theControl, Point thePoint, ProcPtr actionProc);
 void SelectDialogItemText(DialogPtr theDialog, int16_t itemNo, int16_t strtSel, int16_t endSel);
-void SetDialogItemText(Handle item, ConstStr255Param text);
 RgnHandle NewRgn(void);
 void RectRgn(RgnHandle rgn, const Rect* r);
-Boolean PtInRect(Point pt, const Rect* r);
 int32_t DragGrayRgn(RgnHandle theRgn, Point startPt, const Rect* boundsRect, const Rect* slopRect,
     int16_t axis, Ptr actionProc);
 void ParamText(ConstStr255Param param0, ConstStr255Param param1, ConstStr255Param param2, ConstStr255Param param3);
@@ -314,14 +306,9 @@ OSErr FadeToGamma(GammaRef to, UInt16 numSteps, FadeType typeOfFade);
 Handle Get1Resource(ResType theType, int16_t theID);
 void HLockHi(Handle h);
 void BlockMove(const void* srcPtr, void* destPtr, Size byteCount);
-void BeginUpdate(WindowPtr theWindow);
-void EndUpdate(WindowPtr theWindow);
 void SetPt(Point* pt, int16_t h, int16_t v);
 int16_t DIBadMount(Point where, int32_t evtMessage);
-void DisposeWindow(WindowPtr theWindow);
-ControlHandle GetNewControl(int16_t controlID, WindowPtr owner);
 void MoveControl(ControlHandle theControl, int16_t h, int16_t v);
-void BringToFront(WindowPtr theWindow);
 void PenMode(int16_t mode);
 int16_t GetControlValue(ControlHandle theControl);
 void SetControlValue(ControlHandle theControl, int16_t theValue);

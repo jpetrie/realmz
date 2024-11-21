@@ -1,14 +1,10 @@
 #ifndef WindowManager_h
 #define WindowManager_h
 
-#include <SDL3/SDL.h>
 #include <stdbool.h>
-#include <vector>
 
 #include "EventManager.h"
 #include "QuickDraw.h"
-#include "ResourceManager.h"
-#include <resource_file/ResourceFile.hh>
 
 #ifdef __cplusplus
 extern "C" {
@@ -25,38 +21,24 @@ typedef struct {
 } DisplayProperties;
 
 typedef struct {
-  Rect portBounds;
-  int16_t procID;
-  bool visible;
-  bool dismissable;
-  uint32_t refCon;
-  char windowTitle[256];
-  uint16_t posSpec;
-} WindowResource;
-
-typedef struct {
-  Rect bounds;
-  int16_t wDefID;
-  bool visible;
-  bool dismissable;
-  uint32_t refCon;
-  int16_t ditlID;
-} DialogResource;
-
-typedef ResourceDASM::ResourceFile::DecodedDialogItem** DialogItemHandle;
-
-typedef struct {
   CGrafPort port;
   int16_t windowKind;
   Boolean visible;
   Boolean goAwayFlag;
   StringHandle titleHandle;
   uint32_t refCon;
+
+  uint16_t numItems;
+  void* dItems; // DialogItem* (but DialogItem is private)
 } CWindowRecord;
 typedef CGrafPtr CWindowPtr;
 typedef CWindowPtr WindowPtr, DialogPtr, WindowRef;
 
-std::vector<ResourceDASM::ResourceFile::DecodedDialogItem> WindowManager_get_ditl_resources(int16_t ditlID);
+typedef struct {
+  Rect contrlRect;
+} ControlRecord;
+typedef ControlRecord* ControlPtr;
+typedef ControlPtr* ControlHandle;
 
 void WindowManager_Init(void);
 WindowPtr WindowManager_CreateNewWindow(int16_t res_id, bool is_dialog, WindowPtr behind);
@@ -67,6 +49,7 @@ DisplayProperties WindowManager_GetPrimaryDisplayProperties(void);
 OSErr PlotCIcon(const Rect* theRect, CIconHandle theIcon);
 void GetDialogItem(DialogPtr theDialog, int16_t itemNo, int16_t* itemType, Handle* item, Rect* box);
 void GetDialogItemText(Handle item, Str255 text);
+void SetDialogItemText(Handle item, ConstStr255Param text);
 int16_t StringWidth(ConstStr255Param s);
 void LineTo(int16_t h, int16_t v);
 void DrawPicture(PicHandle myPicture, const Rect* dstRect);
@@ -75,6 +58,15 @@ void SetDialogItemText(Handle item, ConstStr255Param text);
 Boolean IsDialogEvent(const EventRecord* ev);
 Boolean DialogSelect(const EventRecord* ev, DialogPtr* dlg, short* item_hit);
 void SystemClick(const EventRecord* ev, WindowPtr window);
+
+Boolean IsDialogEvent(const EventRecord* ev);
+Boolean DialogSelect(const EventRecord* ev, DialogPtr* dlg, short* item_hit);
+void SystemClick(const EventRecord* ev, WindowPtr window);
+void BeginUpdate(WindowPtr theWindow);
+void EndUpdate(WindowPtr theWindow);
+void DisposeWindow(WindowPtr theWindow);
+ControlHandle GetNewControl(int16_t controlID, WindowPtr owner);
+void BringToFront(WindowPtr theWindow);
 
 #ifdef __cplusplus
 } // extern "C"

@@ -250,10 +250,6 @@ int32_t DragGrayRgn(RgnHandle theRgn, Point startPt, const Rect* boundsRect, con
   return 0;
 }
 
-Boolean PtInRect(Point pt, const Rect* r) {
-  return (pt.v >= r->top) && (pt.h >= r->left) && (pt.v < r->bottom) && (pt.h < r->right);
-}
-
 void ExitToShell(void) {
   exit(EXIT_SUCCESS);
 }
@@ -304,8 +300,6 @@ int16_t CountMItems(MenuHandle theMenu) {
 }
 
 void ModalDialog(ModalFilterProcPtr filterProc, short* itemHit) {
-  delay(50);
-  *itemHit = 1;
 }
 
 void MoveWindow(WindowPtr theWindow, uint16_t hGlobal, uint16_t vGlobal, Boolean front) {

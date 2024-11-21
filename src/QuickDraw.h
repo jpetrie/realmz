@@ -121,6 +121,7 @@ typedef struct {
   CGrafHandle default_graf_handle;
 } QuickDrawGlobals;
 
+Boolean PtInRect(Point pt, const Rect* r);
 // Note: Technically the argument to InitGraf is a void*, but we type it here
 // for better safety.
 void InitGraf(QuickDrawGlobals* globalPtr);

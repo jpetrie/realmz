@@ -30,6 +30,10 @@ Rect rect_from_reader(phosg::StringReader& data) {
   return r;
 }
 
+Boolean PtInRect(Point pt, const Rect* r) {
+  return (pt.v >= r->top) && (pt.h >= r->left) && (pt.v < r->bottom) && (pt.h < r->right);
+}
+
 RGBColor color_const_to_rgb(int32_t color_const) {
   switch (color_const) {
     case whiteColor:
