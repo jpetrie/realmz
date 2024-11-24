@@ -1,19 +1,20 @@
 #include "WindowManager.h"
 
-#include "FileManager.hpp"
-#include "StringConvert.hpp"
 #include <SDL3/SDL.h>
 #include <SDL3/SDL_events.h>
 #include <SDL3/SDL_pixels.h>
 #include <SDL3/SDL_render.h>
 #include <SDL3/SDL_video.h>
 #include <SDL3_ttf/SDL_ttf.h>
+
 #include <phosg/Strings.hh>
 #include <resource_file/BitmapFontRenderer.hh>
 #include <resource_file/ResourceFile.hh>
 
+#include "FileManager.hpp"
 #include "MemoryManager.hpp"
 #include "QuickDraw.hpp"
+#include "StringConvert.hpp"
 
 using ResourceDASM::ResourceFile;
 
@@ -95,6 +96,9 @@ struct DialogItem {
   Rect rect;
   bool enabled;
 
+  static size_t next_item_id;
+  static std::unordered_map<size_t, std::shared_ptr<DialogItem>> all_dialog_items;
+
   DialogItem(int16_t ditl_res_id, size_t item_id, const ResourceDASM::ResourceFile::DecodedDialogItem& def)
       : ditl_resource_id(ditl_res_id),
         item_id(item_id),
@@ -175,7 +179,21 @@ public:
       SDL_SyncWindow(sdlWindow);
     }
 
-    void draw_rgba_picture(void* pixels, int w, int h, const Rect& dispRect) {
+    void render_surface(SDL_Surface* surface, const Rect& rect) {
+      SDL_FRect text_dest;
+      text_dest.x = rect.left;
+      text_dest.y = rect.top;
+      text_dest.w = std::min<float>(rect.right - rect.left, surface->w);
+      text_dest.h = std::min<float>(rect.bottom - rect.top, surface->h);
+      auto text_texture = sdl_make_unique(SDL_CreateTextureFromSurface(sdlRenderer, surface));
+      if (!text_texture) {
+        wm_log.error("Failed to create texture when rendering text: %s", SDL_GetError());
+      } else if (!SDL_RenderTexture(sdlRenderer, text_texture.get(), NULL, &text_dest)) {
+        wm_log.error("Failed to render text texture: %s", SDL_GetError());
+      }
+    }
+
+    void draw_rgba_picture(void* pixels, int w, int h, const Rect& rect) {
       auto s = sdl_make_unique(SDL_CreateSurfaceFrom(w, h, SDL_PIXELFORMAT_RGBA32, pixels, 4 * w));
       if (!s) {
         wm_log.error("Could not create surface: %s\n", SDL_GetError());
@@ -189,75 +207,47 @@ public:
       }
 
       SDL_FRect dest;
-      dest.x = dispRect.left;
-      dest.y = dispRect.top;
-      dest.w = dispRect.right - dispRect.left;
-      dest.h = dispRect.bottom - dispRect.top;
-
+      dest.x = rect.left;
+      dest.y = rect.top;
+      dest.w = rect.right - rect.left;
+      dest.h = rect.bottom - rect.top;
       SDL_RenderTexture(sdlRenderer, t.get(), NULL, &dest);
     }
 
-    bool draw_text_ttf(TTF_Font* font, const std::string& text, const Rect& dispRect) {
-      RGBColor fore_color;
-      GetForeColor(&fore_color);
-      SDL_Color sdl_color = {
-          static_cast<uint8_t>(fore_color.red / 0x0101),
-          static_cast<uint8_t>(fore_color.green / 0x0101),
-          static_cast<uint8_t>(fore_color.blue / 0x0101),
-          255};
-
-      std::string processed_text = replace_param_text(text);
+    void draw_text_ttf(TTF_Font* font, const std::string& processed_text, const Rect& rect) {
       auto text_surface = sdl_make_unique(TTF_RenderText_Blended_Wrapped(
-          font, processed_text.data(), processed_text.size(), sdl_color, dispRect.right - dispRect.left));
+          font, processed_text.data(), processed_text.size(), GetForeColorSDL(), rect.right - rect.left));
       if (!text_surface) {
-        return false;
+        wm_log.error("Failed to create surface when rendering text: %s", SDL_GetError());
+      } else {
+        render_surface(text_surface.get(), rect);
       }
-
-      SDL_FRect text_dest;
-      text_dest.x = dispRect.left;
-      text_dest.y = dispRect.top;
-      text_dest.w = std::min(dispRect.right - dispRect.left, text_surface->w);
-      text_dest.h = std::min(dispRect.bottom - dispRect.top, text_surface->h);
-      auto text_texture = sdl_make_unique(SDL_CreateTextureFromSurface(sdlRenderer, text_surface.get()));
-      return (text_texture && SDL_RenderTexture(sdlRenderer, text_texture.get(), NULL, &text_dest));
     }
 
-    bool draw_text_bitmap(
+    void draw_text_bitmap(
         const ResourceDASM::BitmapFontRenderer& renderer,
-        const std::string& text,
-        const Rect& dispRect) {
-      RGBColor fore_color;
-      GetForeColor(&fore_color);
-      uint32_t text_color_rgba8888 = ((static_cast<uint8_t>(fore_color.red / 0x0101) << 24) |
-          (static_cast<uint8_t>(fore_color.green / 0x0101) << 16) |
-          (static_cast<uint8_t>(fore_color.blue / 0x0101) << 8) |
-          0x000000FF);
-
-      size_t rect_w = dispRect.right - dispRect.left;
-      size_t rect_h = dispRect.bottom - dispRect.top;
+        const std::string& processed_text,
+        const Rect& rect) {
+      size_t rect_w = rect.right - rect.left;
+      size_t rect_h = rect.bottom - rect.top;
       phosg::Image img(rect_w, rect_h, true);
       img.clear(0xFF00FF00); // Transparent (with magenta so it will be obvious if compositing is done incorrectly)
-      std::string processed_text = replace_param_text(text);
-      processed_text = renderer.wrap_text_to_pixel_width(processed_text, rect_w);
-      renderer.render_text(img, processed_text, 0, 0, text_color_rgba8888);
+
+      std::string wrapped_text = renderer.wrap_text_to_pixel_width(processed_text, rect_w);
+      renderer.render_text(img, wrapped_text, 0, 0, GetForeColorRGBA8888());
 
       auto text_surface = sdl_make_unique(SDL_CreateSurfaceFrom(
           rect_w, rect_h, SDL_PIXELFORMAT_RGBA32, img.get_data(), 4 * img.get_width()));
-      if (text_surface == nullptr) {
-        wm_log.error("Could not create bitmap text surface: %s\n", SDL_GetError());
-        return false;
+      if (!text_surface) {
+        wm_log.error("Failed to create surface when rendering text: %s", SDL_GetError());
+      } else {
+        render_surface(text_surface.get(), rect);
       }
-
-      SDL_FRect text_dest;
-      text_dest.x = dispRect.left;
-      text_dest.y = dispRect.top;
-      text_dest.w = std::min(dispRect.right - dispRect.left, text_surface->w);
-      text_dest.h = std::min(dispRect.bottom - dispRect.top, text_surface->h);
-      auto text_texture = sdl_make_unique(SDL_CreateTextureFromSurface(sdlRenderer, text_surface.get()));
-      return (text_texture && SDL_RenderTexture(sdlRenderer, text_texture.get(), NULL, &text_dest));
     }
 
-    bool draw_text(const std::string& text, const Rect& dispRect, int16_t font_id) {
+    void draw_text(const std::string& text, const Rect& dispRect, int16_t font_id) {
+      std::string processed_text = replace_param_text(text);
+
       // Try to render with a TrueType font first; if it's not available, use a
       // bitmapped font instead.
 
@@ -267,7 +257,7 @@ public:
       } catch (const std::out_of_range&) {
       }
       if (tt_font != nullptr) {
-        return draw_text_ttf(tt_font, text, dispRect);
+        return draw_text_ttf(tt_font, processed_text, dispRect);
       }
 
       const ResourceDASM::BitmapFontRenderer* bm_renderer = nullptr;
@@ -280,11 +270,10 @@ public:
         bm_renderer = &bm_renderers_by_id.emplace(font_id, decoded).first->second;
       }
       if (bm_renderer) {
-        return draw_text_bitmap(*bm_renderer, text, dispRect);
+        return draw_text_bitmap(*bm_renderer, processed_text, dispRect);
       }
 
       wm_log.error("No renderer is available for font %hd; cannot render text \"%s\"", font_id, text.c_str());
-      return false;
     }
 
     void draw_background(PixPatHandle bkPixPat) {
@@ -383,6 +372,15 @@ public:
     }
     sdl_window_id_to_window.erase(window_it->second->sdl_window_id());
     record_to_window.erase(window_it);
+
+    // If the current port is this window's port, set the current port back to
+    // the default port
+    CGrafPtr current_port;
+    GetPort(reinterpret_cast<GrafPtr*>(&current_port));
+    if (current_port == record) {
+      SetPort(get_default_quickdraw_port());
+    }
+
     CWindowRecord* const window = reinterpret_cast<CWindowRecord*>(record);
     delete window;
   }
@@ -571,9 +569,7 @@ void WindowManager_DrawDialog(WindowPtr theWindow) {
           GetPort(reinterpret_cast<GrafPtr*>(&port));
           // TODO: We probably should use the port's font here, but it seems to
           // be set incorrectly
-          if (!window->draw_text(di.text, di.rect, 1601)) {
-            wm_log.error("Error when rendering text item %d: %s", di.resource_id, SDL_GetError());
-          }
+          window->draw_text(di.text, di.rect, 1601);
           break;
         }
         default:
@@ -674,9 +670,6 @@ int16_t StringWidth(ConstStr255Param s) {
 }
 
 Boolean IsDialogEvent(const EventRecord* ev) {
-  if (ev->what != nullEvent) {
-    fprintf(stderr, "Non-null event\n");
-  }
   try {
     auto window = wm.window_for_sdl_window_id(ev->sdl_window_id);
     return (window->get_dialog_items() != nullptr);
