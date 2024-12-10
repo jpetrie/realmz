@@ -2,34 +2,74 @@
 
 #include <vector>
 
-#include "FileManager.hpp"
-#include "StringConvert.hpp"
 #include <SDL3/SDL.h>
 #include <SDL3/SDL_events.h>
 #include <SDL3/SDL_pixels.h>
 #include <SDL3/SDL_render.h>
 #include <SDL3/SDL_video.h>
 #include <SDL3_ttf/SDL_ttf.h>
+
 #include <phosg/Strings.hh>
+#include <resource_file/BitmapFontRenderer.hh>
 #include <resource_file/ResourceFile.hh>
 
-#include "MemoryManager.hpp"
+#include "FileManager.hpp"
+#include "MemoryManager.h"
 #include "QuickDraw.hpp"
 #include "ResourceManager.h"
+#include "StringConvert.hpp"
+
+#define BLACK_CHANCERY_FONT_ID 1602
 
 using ResourceDASM::ResourceFile;
 
 class DialogItem;
 
 static phosg::PrefixedLogger wm_log("[WindowManager] ");
-static std::unordered_map<int16_t, TTF_Font*> fonts_by_id;
+static std::unordered_map<int16_t, TTF_Font*> tt_fonts_by_id;
+static std::unordered_map<int16_t, ResourceDASM::BitmapFontRenderer> bm_renderers_by_id;
+
+std::unique_ptr<SDL_Surface, void (*)(SDL_Surface*)> sdl_make_unique(SDL_Surface* s) {
+  return std::unique_ptr<SDL_Surface, void (*)(SDL_Surface*)>(s, SDL_DestroySurface);
+}
+std::unique_ptr<SDL_Texture, void (*)(SDL_Texture*)> sdl_make_unique(SDL_Texture* t) {
+  return std::unique_ptr<SDL_Texture, void (*)(SDL_Texture*)>(t, SDL_DestroyTexture);
+}
 
 typedef size_t DialogItemHandle;
 static std::unordered_map<DialogItemHandle, std::shared_ptr<DialogItem>> dialog_items_by_opaque_handle;
 
 using DialogItemType = ResourceDASM::ResourceFile::DecodedDialogItem::Type;
 
-int16_t macos_dialog_item_type_for_resource_dasm_type(DialogItemType type) {
+std::array<std::string, 4> param_text_entries;
+
+static std::string replace_param_text(const std::string& text) {
+  char prev = 0;
+  std::string ret;
+  for (size_t z = 0; z < text.size(); z++) {
+    char ch = text[z];
+    if (ch == '^' && z < text.size() - 1) {
+      char index = text[++z];
+      if (index == '0' && !param_text_entries[0].empty()) {
+        ret += param_text_entries[0];
+      } else if (index == '1' && !param_text_entries[1].empty()) {
+        ret += param_text_entries[1];
+      } else if (index == '2' && !param_text_entries[2].empty()) {
+        ret += param_text_entries[2];
+      } else if (index == '3' && !param_text_entries[3].empty()) {
+        ret += param_text_entries[3];
+      } else {
+        ret.append(1, '^');
+        ret.append(1, (index == '\r') ? '\n' : index);
+      }
+    } else {
+      ret.append(1, (ch == '\r') ? '\n' : ch);
+    }
+  }
+  return ret;
+}
+
+static int16_t macos_dialog_item_type_for_resource_dasm_type(DialogItemType type) {
   switch (type) {
     case DialogItemType::BUTTON:
       return 4;
@@ -61,28 +101,40 @@ void copy_rect(Rect& dst, const ResourceDASM::Rect& src) {
   dst.right = src.x2;
 }
 
-void draw_rgba_picture(std::shared_ptr<SDL_Renderer> sdlRenderer, void* pixels, int w, int h, const Rect& dispRect) {
-  SDL_Surface* s = SDL_CreateSurfaceFrom(w, h, SDL_PIXELFORMAT_RGBA32, pixels, 4 * w);
+bool render_surface(std::shared_ptr<SDL_Renderer> sdlRenderer, SDL_Surface* surface, const Rect& rect) {
+  SDL_FRect text_dest;
+  text_dest.x = rect.left;
+  text_dest.y = rect.top;
+  text_dest.w = std::min<float>(rect.right - rect.left, surface->w);
+  text_dest.h = std::min<float>(rect.bottom - rect.top, surface->h);
+  auto text_texture = sdl_make_unique(SDL_CreateTextureFromSurface(sdlRenderer.get(), surface));
+  if (!text_texture) {
+    wm_log.error("Failed to create texture when rendering text: %s", SDL_GetError());
+    return false;
+  } else if (!SDL_RenderTexture(sdlRenderer.get(), text_texture.get(), NULL, &text_dest)) {
+    wm_log.error("Failed to render text texture: %s", SDL_GetError());
+    return false;
+  }
+  return true;
+}
 
-  if (s == NULL) {
+void draw_rgba_picture(std::shared_ptr<SDL_Renderer> sdlRenderer, void* pixels, int w, int h, const Rect& rect) {
+  auto s = sdl_make_unique(SDL_CreateSurfaceFrom(w, h, SDL_PIXELFORMAT_RGBA32, pixels, 4 * w));
+  if (!s) {
     wm_log.error("Could not create surface: %s\n", SDL_GetError());
     return;
   }
-
-  SDL_Texture* t = SDL_CreateTextureFromSurface(sdlRenderer.get(), s);
-  if (t == NULL) {
+  auto t = sdl_make_unique(SDL_CreateTextureFromSurface(sdlRenderer.get(), s.get()));
+  if (!t) {
     wm_log.error("Could not create texture: %s\n", SDL_GetError());
     return;
   }
-  SDL_DestroySurface(s);
-
   SDL_FRect dest;
-  dest.x = dispRect.left;
-  dest.y = dispRect.top;
-  dest.w = dispRect.right - dispRect.left;
-  dest.h = dispRect.bottom - dispRect.top;
-
-  SDL_RenderTexture(sdlRenderer.get(), t, NULL, &dest);
+  dest.x = rect.left;
+  dest.y = rect.top;
+  dest.w = rect.right - rect.left;
+  dest.h = rect.bottom - rect.top;
+  SDL_RenderTexture(sdlRenderer.get(), t.get(), NULL, &dest);
 }
 
 void draw_rgba_picture(std::shared_ptr<SDL_Renderer> sdlRenderer, void* pixels, int w, int h, const ResourceDASM::Rect& dispRect) {
@@ -91,39 +143,77 @@ void draw_rgba_picture(std::shared_ptr<SDL_Renderer> sdlRenderer, void* pixels, 
   draw_rgba_picture(sdlRenderer, pixels, w, h, bounds);
 }
 
-bool draw_text(std::shared_ptr<SDL_Renderer> sdlRenderer, const std::string& text, const Rect& dispRect) {
-  if (text.length() <= 0) {
+bool draw_text_ttf(std::shared_ptr<SDL_Renderer> sdlRenderer, TTF_Font* font, const std::string& processed_text, const Rect& rect) {
+  auto text_surface = sdl_make_unique(TTF_RenderText_Blended_Wrapped(
+      font, processed_text.data(), processed_text.size(), GetForeColorSDL(), rect.right - rect.left));
+  if (!text_surface) {
+    wm_log.error("Failed to create surface when rendering text: %s", SDL_GetError());
     return false;
+  } else {
+    return render_surface(sdlRenderer, text_surface.get(), rect);
+  }
+}
+
+bool draw_text_bitmap(
+    std::shared_ptr<SDL_Renderer> sdlRenderer,
+    const ResourceDASM::BitmapFontRenderer& renderer,
+    const std::string& processed_text,
+    const Rect& rect) {
+  size_t rect_w = rect.right - rect.left;
+  size_t rect_h = rect.bottom - rect.top;
+  phosg::Image img(rect_w, rect_h, true);
+  img.clear(0xFF00FF00); // Transparent (with magenta so it will be obvious if compositing is done incorrectly)
+
+  std::string wrapped_text = renderer.wrap_text_to_pixel_width(processed_text, rect_w);
+  renderer.render_text(img, wrapped_text, 0, 0, GetForeColorRGBA8888());
+
+  auto text_surface = sdl_make_unique(SDL_CreateSurfaceFrom(
+      rect_w, rect_h, SDL_PIXELFORMAT_RGBA32, img.get_data(), 4 * img.get_width()));
+  if (!text_surface) {
+    wm_log.error("Failed to create surface when rendering text: %s", SDL_GetError());
+    return false;
+  } else {
+    return render_surface(sdlRenderer, text_surface.get(), rect);
+  }
+}
+
+bool draw_text(std::shared_ptr<SDL_Renderer> sdlRenderer, const std::string& text, const Rect& dispRect, int16_t font_id) {
+  std::string processed_text = replace_param_text(text);
+
+  // Try to render with a TrueType font first; if it's not available, use a
+  // bitmapped font instead.
+
+  TTF_Font* tt_font = nullptr;
+  try {
+    tt_font = tt_fonts_by_id.at(font_id);
+  } catch (const std::out_of_range&) {
+    // TODO: The default font is loaded from the PREF resource in the getpref()
+    //  function, which currently doesn't work and fills the defaultfont global with
+    //  garbage. If we're ever relying on the defaultfont, or any other unknown font,
+    //  just pick a default. This can be removed and replaced with a runtime error
+    //  once preference loading is working.
+    tt_font = tt_fonts_by_id.at(BLACK_CHANCERY_FONT_ID);
+  }
+  if (tt_font != nullptr) {
+    return draw_text_ttf(sdlRenderer, tt_font, processed_text, dispRect);
   }
 
-  // TTF_Font* font = fonts_by_id.at(port->txFont);
-  TTF_Font* font = fonts_by_id.at(1601);
-  RGBColor fore_color;
-  int width = dispRect.right - dispRect.left;
-  GetForeColor(&fore_color);
-  SDL_Surface* text_surface = TTF_RenderText_Blended_Wrapped(
-      font,
-      reinterpret_cast<const char*>(text.c_str()),
-      static_cast<size_t>(text.length()),
-      SDL_Color{
-          static_cast<uint8_t>(fore_color.red / 0x0101),
-          static_cast<uint8_t>(fore_color.green / 0x0101),
-          static_cast<uint8_t>(fore_color.blue / 0x0101),
-          255},
-      width);
-  if (!text_surface) {
-    return false;
+  const ResourceDASM::BitmapFontRenderer* bm_renderer = nullptr;
+  try {
+    bm_renderer = &bm_renderers_by_id.at(font_id);
+  } catch (const std::out_of_range&) {
+    auto data_handle = GetResource(ResourceDASM::RESOURCE_TYPE_FONT, font_id);
+    auto decoded = std::make_shared<ResourceDASM::ResourceFile::DecodedFontResource>(
+        ResourceDASM::ResourceFile::decode_FONT_only(*data_handle, GetHandleSize(data_handle)));
+    bm_renderer = &bm_renderers_by_id.emplace(font_id, decoded).first->second;
   }
-  SDL_FRect text_dest;
-  text_dest.x = dispRect.left;
-  text_dest.y = dispRect.top;
-  text_dest.w = std::min(width, text_surface->w);
-  text_dest.h = std::min(dispRect.bottom - dispRect.top, text_surface->h);
-  SDL_Texture* text_texture = SDL_CreateTextureFromSurface(sdlRenderer.get(), text_surface);
-  if (!text_texture || !SDL_RenderTexture(sdlRenderer.get(), text_texture, NULL, &text_dest)) {
-    return false;
+
+  if (bm_renderer) {
+    return draw_text_bitmap(sdlRenderer, *bm_renderer, processed_text, dispRect);
   }
-  return true;
+
+  wm_log.error("No renderer is available for font %hd; cannot render text \"%s\"", font_id, text.c_str());
+  return false;
 }
 
 class WindowManager;
@@ -144,6 +234,9 @@ public:
   std::shared_ptr<SDL_Renderer> sdlRenderer;
   DialogItemHandle handle;
   static DialogItemHandle next_di_handle;
+
+  static size_t next_item_id;
+  static std::unordered_map<size_t, std::shared_ptr<DialogItem>> all_dialog_items;
 
   DialogItem(int16_t ditl_res_id, size_t item_id, const ResourceDASM::ResourceFile::DecodedDialogItem& def)
       : ditl_resource_id(ditl_res_id),
@@ -207,6 +300,9 @@ public:
     SDL_SetRenderDrawBlendMode(sdlRenderer.get(), blendMode);
     SDL_SetRenderDrawColor(sdlRenderer.get(), r, g, b, a);
 
+    CGrafPtr port;
+    GetPort(&port);
+
     switch (type) {
       case ResourceFile::DecodedDialogItem::Type::PICTURE: {
         auto pict = **GetPicture(resource_id);
@@ -224,7 +320,11 @@ public:
           dirty = false;
           return;
         }
-        if (!draw_text(sdlRenderer, text, Rect{0, 0, get_height(), get_width()})) {
+        if (!draw_text(
+                sdlRenderer,
+                text,
+                Rect{0, 0, get_height(), get_width()},
+                port->txFont)) {
           wm_log.error("Error when rendering text item %d: %s", resource_id, SDL_GetError());
           SDL_SetRenderTarget(sdlRenderer.get(), NULL);
           dirty = false;
@@ -233,7 +333,11 @@ public:
         break;
       }
       case ResourceFile::DecodedDialogItem::Type::BUTTON: {
-        if (!draw_text(sdlRenderer, text, Rect{0, 0, get_height(), get_width()})) {
+        if (!draw_text(
+                sdlRenderer,
+                text,
+                Rect{0, 0, get_height(), get_width()},
+                port->txFont)) {
           wm_log.error("Error when rendering button text item %d: %s", resource_id, SDL_GetError());
           SDL_SetRenderTarget(sdlRenderer.get(), NULL);
           dirty = false;
@@ -536,6 +640,7 @@ public:
     port.portRect = bounds;
     CWindowRecord* wr = new CWindowRecord();
     wr->port = port;
+    wr->port.portRect = bounds;
 
     // Note: Realmz doesn't actually use any of the following fields; we also
     // don't use numItems and dItems internally here (we instead use the vector
@@ -564,6 +669,15 @@ public:
     }
     sdl_window_id_to_window.erase(window_it->second->sdl_window_id());
     record_to_window.erase(window_it);
+
+    // If the current port is this window's port, set the current port back to
+    // the default port
+    CGrafPtr current_port;
+    GetPort(reinterpret_cast<GrafPtr*>(&current_port));
+    if (current_port == record) {
+      SetPort(get_default_quickdraw_port());
+    }
+
     CWindowRecord* const window = reinterpret_cast<CWindowRecord*>(record);
     delete window;
   }
@@ -581,12 +695,6 @@ private:
 };
 
 static WindowManager wm;
-
-static void
-load_fonts(void) {
-  auto font_filename = host_filename_for_mac_filename(":Black Chancery.ttf", true);
-  fonts_by_id[1601] = TTF_OpenFont(font_filename.c_str(), 16);
-}
 
 static void SDL_snprintfcat(SDL_OUT_Z_CAP(maxlen) char* text, size_t maxlen, SDL_PRINTF_FORMAT_STRING const char* fmt, ...) {
   size_t length = SDL_strlen(text);
@@ -656,7 +764,14 @@ void WindowManager_Init(void) {
   PrintDebugInfo();
 
   TTF_Init();
-  load_fonts();
+
+  // Pre-populate Black Chancery, since it doesnt' come from the resource fork.
+  // We can't pre-populate Theldrow because the resource files aren't loaded at
+  // the time WindowManager_Init is called.
+
+  // TODO: Is 1602 the correct font ID for Black Chancery?
+  auto font_filename = host_filename_for_mac_filename(":Black Chancery.ttf", true);
+  tt_fonts_by_id[BLACK_CHANCERY_FONT_ID] = TTF_OpenFont(font_filename.c_str(), 16);
 }
 
 WindowPtr WindowManager_CreateNewWindow(int16_t res_id, bool is_dialog, WindowPtr behind) {
@@ -797,9 +912,6 @@ int16_t StringWidth(ConstStr255Param s) {
 }
 
 Boolean IsDialogEvent(const EventRecord* ev) {
-  if (ev->what != nullEvent) {
-    fprintf(stderr, "Non-null event\n");
-  }
   try {
     auto window = wm.window_for_sdl_window_id(ev->sdl_window_id);
     return (window->get_dialog_items() != nullptr);
@@ -897,4 +1009,38 @@ DialogPtr GetNewDialog(uint16_t res_id, void* dStorage, WindowPtr behind) {
 
 CWindowPtr GetNewCWindow(int16_t res_id, void* wStorage, WindowPtr behind) {
   return WindowManager_CreateNewWindow(res_id, false, behind);
+}
+
+void ParamText(ConstStr255Param param0, ConstStr255Param param1, ConstStr255Param param2, ConstStr255Param param3) {
+  param_text_entries[0] = string_for_pstr<256>(param0);
+  param_text_entries[1] = string_for_pstr<256>(param1);
+  param_text_entries[2] = string_for_pstr<256>(param2);
+  param_text_entries[3] = string_for_pstr<256>(param3);
+  fprintf(stderr, "ParamText(\"%s\", \"%s\", \"%s\", \"%s\")\n", param_text_entries[0].c_str(), param_text_entries[1].c_str(), param_text_entries[2].c_str(), param_text_entries[3].c_str());
+}
+
+void NumToString(int32_t num, Str255 str) {
+  str[0] = snprintf(reinterpret_cast<char*>(&str[1]), 0xFF, "%" PRId32, num);
+}
+
+void StringToNum(ConstStr255Param str, int32_t* num) {
+  // Inside Macintosh I-490:
+  //   StringToNum doesn't actually check whether the characters in the string
+  //   are between '0' and '9'; instead, since the ASCII codes for '0' through
+  //   '9' are $30 through $39, it just masks off the last four bits and uses
+  //   them as a digit. For example, '2:' is converted to the number 30 because
+  //   the ASCII code for':' is $3A. Spaces are treated as zeroes, since the
+  //   ASCII code for a space is $20.
+  // We implement the same behavior here.
+  *num = 0;
+  if (str[0] > 0) {
+    bool negative = (str[1] == '-');
+    size_t offset = negative ? 1 : 0;
+    for (size_t z = 0; z < static_cast<uint8_t>(str[0]); z++) {
+      *num = ((*num) * 10) + (str[z + 1] & 0x0F);
+    }
+    if (negative) {
+      *num = -(*num);
+    }
+  }
 }
