@@ -250,7 +250,12 @@ Myriad 6-7-99
 void MyrDrawCString(Ptr strc) {
   char strp[256];
 
-  BlockMove(strc, strp, 255);
+  /* *** CHANGED FROM ORIGINAL IMPLEMENTATION ***
+   * NOTE(danapplegate): Realmz often calls this MyrDrawCString function with string literals
+   * of various lengths, then copies 255 bytes from that location, causing invalid program memory
+   * access. To be safe, we limit the number of bytes copied to the length of the string.
+   */
+  BlockMove(strc, strp, strlen((const char*)strc) + 1);
   CtoPstr(strp);
   DrawString((StringPtr)strp);
   return;
