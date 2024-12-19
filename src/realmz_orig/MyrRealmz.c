@@ -10,7 +10,7 @@ Myriad 1999 for Fantasoft
 #include "files.h"
 /* *** CHANGED FROM ORIGINAL IMPLEMENTATION ***
  * NOTE(danapplegate): Realmz calls MyrParamText MyrDrawCString, with string
- * literals of various lengths, then copies 255 bytes from that location, causing invalid progra
+ * literals of various lengths, then copies 255 bytes from that location, causing invalid program
  * memory access. To be safe, we limit the number of bytes copied to the length of the string.
  */
 
