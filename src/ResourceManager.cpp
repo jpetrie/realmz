@@ -560,12 +560,11 @@ Handle Get1Resource(ResType type, int16_t id) {
     // to a PrefHandle and tries to access any of its members beyond the first byte of name_str, a
     // heap overflow access error occurs. To avoid this, we resize the data handle.
     if (type == 'PRFN' && id == 128 /* PREF_RES_ID */) {
-      auto pref_handle = (PrefHandle)NewHandleClear(sizeof(PrefRecord));
-      memcpy(*pref_handle, *res->data_handle, 45);
-      size_t name_str_size = (size_t) * (*res->data_handle + 44);
-      memcpy((*pref_handle) + offsetof(PrefRecord, name_str) + 1, *res->data_handle + 45, name_str_size);
-      memcpy(*pref_handle + offsetof(PrefRecord, autonote), *res->data_handle + 45 + name_str_size, 18);
-      ReplaceHandle(res->data_handle, (Handle)pref_handle);
+      SetHandleSize(res->data_handle, sizeof(PrefRecord));
+      auto pref_handle = (PrefHandle)res->data_handle;
+      int name_str_size = (int)(*pref_handle)->name_str[0];
+      auto end_of_name_str = (char*)*pref_handle + offsetof(PrefRecord, name_str) + 1 + name_str_size;
+      memmove((char*)*pref_handle + offsetof(PrefRecord, autonote), end_of_name_str, 18);
     }
 
     return res->data_handle;
