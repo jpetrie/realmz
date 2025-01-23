@@ -1,6 +1,7 @@
 #pragma once
 
 #include "QuickDraw.h"
+#include "SDL3/SDL.h"
 #include "Types.h"
 
 // See Event Manager chapter in Inside Macintosh volume 1, starting on page 241
@@ -67,6 +68,7 @@ typedef struct {
 
   // The following fields are not part of the original Classic Mac OS API
   uint32_t sdl_window_id;
+  char* text;
 } EventRecord;
 
 uint32_t TickCount(void);

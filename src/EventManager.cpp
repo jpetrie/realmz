@@ -2,6 +2,7 @@
 
 #include <SDL3/SDL_events.h>
 
+#include <cstring>
 #include <deque>
 #include <phosg/Strings.hh>
 
@@ -329,7 +330,7 @@ protected:
     };
   }
 
-  void enqueue_event(uint16_t what, uint32_t message, SDL_WindowID sdl_window_id) {
+  void enqueue_event(uint16_t what, uint32_t message, SDL_WindowID sdl_window_id, const char* text) {
     auto& ev = this->event_queue.emplace_back();
     ev.what = what;
     ev.message = message;
@@ -337,13 +338,18 @@ protected:
     ev.where = this->mouse_loc;
     ev.modifiers = this->modifier_flags;
     ev.sdl_window_id = sdl_window_id;
+    if (text && strlen(text)) {
+      ev.text = (char*)malloc(strlen(text) + 1);
+      strcpy(ev.text, text);
+    }
   }
 
   void enqueue_sdl_event(const SDL_Event& e) {
     switch (e.type) {
+      // TODO: Handle any cleanup of specific window that was closed
+      //  case SDL_EVENT_WINDOW_CLOSE_REQUESTED:
       case SDL_EVENT_QUIT:
-      case SDL_EVENT_WINDOW_CLOSE_REQUESTED:
-        // TODO: This should trigger the same thing as if the user chose File->Quit
+        exit(EXIT_SUCCESS);
         break;
       case SDL_EVENT_KEY_DOWN:
       case SDL_EVENT_KEY_UP: {
@@ -361,7 +367,7 @@ protected:
 
         uint32_t message = mac_message_for_sdl_key_code(e.key.key, this->modifier_flags);
         if (message != 0) {
-          this->enqueue_event((e.type == SDL_EVENT_KEY_DOWN) ? keyDown : keyUp, message, e.key.windowID);
+          this->enqueue_event((e.type == SDL_EVENT_KEY_DOWN) ? keyDown : keyUp, message, e.key.windowID, "");
         } else {
           em_log.warning("Unknown key pressed: key=0x%zX scancode=0x%zX",
               static_cast<size_t>(e.key.key), static_cast<size_t>(e.key.scancode));
@@ -384,12 +390,18 @@ protected:
           this->mouse_loc.h = e.button.x;
           this->mouse_loc.v = e.button.y;
           this->set_modifier_value(EVMOD_MOUSE_BUTTON_UP, (e.type == SDL_EVENT_MOUSE_BUTTON_UP));
-          this->enqueue_event((e.type == SDL_EVENT_MOUSE_BUTTON_DOWN) ? mouseDown : mouseUp, 0, e.button.windowID);
+          this->enqueue_event((e.type == SDL_EVENT_MOUSE_BUTTON_DOWN) ? mouseDown : mouseUp, 0, e.button.windowID, "");
         }
         break;
-      // TODO: These might be helpful for implementing text input later
-      // case SDL_EVENT_TEXT_EDITING:
-      // case SDL_EVENT_TEXT_INPUT:
+      case SDL_EVENT_TEXT_EDITING:
+      case SDL_EVENT_TEXT_INPUT:
+        em_log.info("%s %s",
+            (e.type == SDL_EVENT_TEXT_EDITING) ? "SDL_EVENT_TEXT_EDITING" : "SDL_EVENT_TEXT_INPUT", e.text.text);
+
+        // We can use the otherwise unused app4Evt to signal a text input event, the handling of which
+        // would originally have been intercepted and processed by TextEdit.
+        this->enqueue_event(app4Evt, 0, e.text.windowID, e.text.text);
+        break;
       default:
         em_log.info("Unhandled SDL event type 0x%" PRIX32, e.type);
     }
