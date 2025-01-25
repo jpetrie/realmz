@@ -330,10 +330,6 @@ int32_t DeltaPoint(Point ptA, Point ptB) {
 void FrameRect(const Rect* r) {
 }
 
-int16_t TextWidth(const void* textBuf, int16_t firstByte, int16_t byteCount) {
-  return 0;
-}
-
 TEHandle TENew(const Rect* destRect, const Rect* viewRect) {
   return NULL;
 }

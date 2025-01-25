@@ -257,7 +257,6 @@ void SetControlMaximum(ControlHandle theControl, int16_t maxValue);
 void SizeControl(ControlHandle theControl, int16_t w, int16_t h);
 int32_t DeltaPoint(Point ptA, Point ptB);
 void FrameRect(const Rect* r);
-int16_t TextWidth(const void* textBuf, int16_t firstByte, int16_t byteCount);
 TEHandle TENew(const Rect* destRect, const Rect* viewRect);
 void TESetText(const void* text, int32_t length, TEHandle hTE);
 void TESetSelect(int32_t selStart, int32_t selEnd, TEHandle hTE);

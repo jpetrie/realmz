@@ -52,6 +52,16 @@ using DialogItemType = ResourceDASM::ResourceFile::DecodedDialogItem::Type;
 
 std::array<std::string, 4> param_text_entries;
 
+// Used for text measuring
+static std::shared_ptr<SDL_Renderer> dummy_renderer{};
+static std::shared_ptr<SDL_Renderer> get_dummy_renderer(void) {
+  if (dummy_renderer == nullptr) {
+    SDL_Surface* surface = SDL_CreateSurface(1000, 1000, SDL_PIXELFORMAT_RGBA32);
+    dummy_renderer = std::shared_ptr<SDL_Renderer>(SDL_CreateSoftwareRenderer(surface), SDL_DestroyRenderer);
+  }
+  return dummy_renderer;
+}
+
 static std::string replace_param_text(const std::string& text) {
   char prev = 0;
   std::string ret;
@@ -1485,4 +1495,21 @@ void DrawString(ConstStr255Param s) {
 
   window->draw_text(str);
   window->render();
+}
+
+int16_t TextWidth(const void* textBuf, int16_t firstByte, int16_t byteCount) {
+  // Realmz always calls this procedure with 0 as the first byte, and the full
+  // strlen as the byteCount, so we can ignore those parameters and just measure
+  // the full string.
+  // Realmz also seems to only call this with cstrings, so we're good there as well.
+  CGrafPtr port{};
+  GetPort(&port);
+
+  return ::draw_text(
+      get_dummy_renderer(),
+      static_cast<const char*>(textBuf),
+      0,
+      0,
+      port->txFont,
+      port->txSize);
 }

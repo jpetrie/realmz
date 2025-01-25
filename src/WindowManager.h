@@ -75,6 +75,7 @@ void ModalDialog(ModalFilterProcPtr filterProc, short* itemHit);
 void DrawString(ConstStr255Param s);
 void DrawDialog(DialogPtr theDialog);
 void DisposeDialog(DialogPtr theDialog);
+int16_t TextWidth(const void* textBuf, int16_t firstByte, int16_t byteCount);
 
 #ifdef __cplusplus
 } // extern "C"
