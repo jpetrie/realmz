@@ -191,7 +191,6 @@ PixMapHandle GetGWorldPixMap(GWorldPtr offscreenGWorld);
 Size MaxMem(Size* grow);
 void BackPixPat(PixPatHandle ppat);
 void TextMode(int16_t mode);
-void TextFace(int16_t face);
 void SetItemIcon(MenuHandle theMenu, int16_t item, int16_t iconIndex);
 void EraseRect(const Rect* r);
 void OffsetRect(Rect* r, uint16_t dh, uint16_t dv);

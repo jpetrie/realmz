@@ -241,7 +241,25 @@ bool load_font(int16_t font_id, Font& font) {
   return true;
 }
 
-bool draw_text(std::shared_ptr<SDL_Renderer> sdlRenderer, const std::string& text, const Rect& dispRect, int16_t font_id, float pt) {
+void set_font_face(TTF_Font* font, int16_t face) {
+  TTF_FontStyleFlags styles{TTF_STYLE_NORMAL};
+
+  if (face == bold) {
+    styles |= TTF_STYLE_BOLD;
+  } else if (face == outline) {
+    styles |= TTF_STYLE_UNDERLINE;
+  }
+
+  TTF_SetFontStyle(font, styles);
+}
+
+bool draw_text(
+    std::shared_ptr<SDL_Renderer> sdlRenderer,
+    const std::string& text,
+    const Rect& dispRect,
+    int16_t font_id,
+    float pt,
+    int16_t face) {
   std::string processed_text = replace_param_text(text);
 
   Font font{};
@@ -255,6 +273,7 @@ bool draw_text(std::shared_ptr<SDL_Renderer> sdlRenderer, const std::string& tex
   if (std::holds_alternative<TTF_Font*>(font)) {
     TTF_Font* tt_font = std::get<TTF_Font*>(font);
     TTF_SetFontSize(tt_font, pt);
+    set_font_face(tt_font, face);
     return draw_text_ttf(sdlRenderer, tt_font, processed_text, dispRect);
   } else {
     return draw_text_bitmap(sdlRenderer, std::get<ResourceDASM::BitmapFontRenderer>(font), processed_text, dispRect);
@@ -266,7 +285,14 @@ bool draw_text(std::shared_ptr<SDL_Renderer> sdlRenderer, const std::string& tex
 
 // Draws the specified text when the display bounds are unknown. Returns the width of
 // the rendered text in pixels.
-int draw_text(std::shared_ptr<SDL_Renderer> sdlRenderer, const std::string& text, int16_t x, int16_t y, int16_t font_id, float pt) {
+int draw_text(
+    std::shared_ptr<SDL_Renderer> sdlRenderer,
+    const std::string& text,
+    int16_t x,
+    int16_t y,
+    int16_t font_id,
+    float pt,
+    int16_t face) {
   std::string processed_text = replace_param_text(text);
 
   Font font{};
@@ -280,6 +306,7 @@ int draw_text(std::shared_ptr<SDL_Renderer> sdlRenderer, const std::string& text
   if (std::holds_alternative<TTF_Font*>(font)) {
     TTF_Font* tt_font = std::get<TTF_Font*>(font);
     TTF_SetFontSize(tt_font, pt);
+    set_font_face(tt_font, face);
     TTF_Text* t = TTF_CreateText(NULL, tt_font, processed_text.c_str(), 0);
     int w{0}, h{0};
     TTF_GetTextSize(t, &w, &h);
@@ -454,7 +481,8 @@ public:
                 text,
                 Rect{0, 0, get_height(), get_width()},
                 port->txFont,
-                port->txSize)) {
+                port->txSize,
+                port->txFace)) {
           wm_log.error("Error when rendering text item %d: %s", resource_id, SDL_GetError());
           SDL_SetRenderTarget(sdlRenderer.get(), NULL);
           dirty = false;
@@ -468,7 +496,8 @@ public:
                 text,
                 Rect{0, 0, get_height(), get_width()},
                 port->txFont,
-                port->txSize)) {
+                port->txSize,
+                port->txFace)) {
           wm_log.error("Error when rendering button text item %d: %s", resource_id, SDL_GetError());
           SDL_SetRenderTarget(sdlRenderer.get(), NULL);
           dirty = false;
@@ -482,7 +511,8 @@ public:
                 text,
                 Rect{0, 0, get_height(), get_width()},
                 port->txFont,
-                port->txSize)) {
+                port->txSize,
+                port->txFace)) {
           wm_log.error("Error when rendering editable text item %d: %s", resource_id, SDL_GetError());
           SDL_SetRenderTarget(sdlRenderer.get(), NULL);
           dirty = false;
@@ -720,7 +750,7 @@ public:
 
     SDL_SetRenderTarget(sdlRenderer.get(), sdlTexture);
 
-    int width = ::draw_text(sdlRenderer, text, pen_loc.h, pen_loc.v, font_id, port->txSize);
+    int width = ::draw_text(sdlRenderer, text, pen_loc.h, pen_loc.v, font_id, port->txSize, port->txFace);
     port->pnLoc.h += width;
 
     // Restore window as the render target
@@ -1511,5 +1541,6 @@ int16_t TextWidth(const void* textBuf, int16_t firstByte, int16_t byteCount) {
       0,
       0,
       port->txFont,
-      port->txSize);
+      port->txSize,
+      port->txFace);
 }
