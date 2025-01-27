@@ -52,6 +52,16 @@ using DialogItemType = ResourceDASM::ResourceFile::DecodedDialogItem::Type;
 
 std::array<std::string, 4> param_text_entries;
 
+// Used for text measuring
+static std::shared_ptr<SDL_Renderer> dummy_renderer{};
+static std::shared_ptr<SDL_Renderer> get_dummy_renderer(void) {
+  if (dummy_renderer == nullptr) {
+    SDL_Surface* surface = SDL_CreateSurface(1000, 1000, SDL_PIXELFORMAT_RGBA32);
+    dummy_renderer = std::shared_ptr<SDL_Renderer>(SDL_CreateSoftwareRenderer(surface), SDL_DestroyRenderer);
+  }
+  return dummy_renderer;
+}
+
 static std::string replace_param_text(const std::string& text) {
   char prev = 0;
   std::string ret;
@@ -231,7 +241,25 @@ bool load_font(int16_t font_id, Font& font) {
   return true;
 }
 
-bool draw_text(std::shared_ptr<SDL_Renderer> sdlRenderer, const std::string& text, const Rect& dispRect, int16_t font_id) {
+void set_font_face(TTF_Font* font, int16_t face) {
+  TTF_FontStyleFlags styles{TTF_STYLE_NORMAL};
+
+  if (face == bold) {
+    styles |= TTF_STYLE_BOLD;
+  } else if (face == outline) {
+    styles |= TTF_STYLE_UNDERLINE;
+  }
+
+  TTF_SetFontStyle(font, styles);
+}
+
+bool draw_text(
+    std::shared_ptr<SDL_Renderer> sdlRenderer,
+    const std::string& text,
+    const Rect& dispRect,
+    int16_t font_id,
+    float pt,
+    int16_t face) {
   std::string processed_text = replace_param_text(text);
 
   Font font{};
@@ -243,7 +271,10 @@ bool draw_text(std::shared_ptr<SDL_Renderer> sdlRenderer, const std::string& tex
   }
 
   if (std::holds_alternative<TTF_Font*>(font)) {
-    return draw_text_ttf(sdlRenderer, std::get<TTF_Font*>(font), processed_text, dispRect);
+    TTF_Font* tt_font = std::get<TTF_Font*>(font);
+    TTF_SetFontSize(tt_font, pt);
+    set_font_face(tt_font, face);
+    return draw_text_ttf(sdlRenderer, tt_font, processed_text, dispRect);
   } else {
     return draw_text_bitmap(sdlRenderer, std::get<ResourceDASM::BitmapFontRenderer>(font), processed_text, dispRect);
   }
@@ -254,7 +285,14 @@ bool draw_text(std::shared_ptr<SDL_Renderer> sdlRenderer, const std::string& tex
 
 // Draws the specified text when the display bounds are unknown. Returns the width of
 // the rendered text in pixels.
-int draw_text(std::shared_ptr<SDL_Renderer> sdlRenderer, const std::string& text, int16_t x, int16_t y, int16_t font_id) {
+int draw_text(
+    std::shared_ptr<SDL_Renderer> sdlRenderer,
+    const std::string& text,
+    int16_t x,
+    int16_t y,
+    int16_t font_id,
+    float pt,
+    int16_t face) {
   std::string processed_text = replace_param_text(text);
 
   Font font{};
@@ -267,13 +305,21 @@ int draw_text(std::shared_ptr<SDL_Renderer> sdlRenderer, const std::string& text
 
   if (std::holds_alternative<TTF_Font*>(font)) {
     TTF_Font* tt_font = std::get<TTF_Font*>(font);
+    TTF_SetFontSize(tt_font, pt);
+    set_font_face(tt_font, face);
     TTF_Text* t = TTF_CreateText(NULL, tt_font, processed_text.c_str(), 0);
     int w{0}, h{0};
     TTF_GetTextSize(t, &w, &h);
 
     // The pen location, passed in as the x and y parameters, is at the baseline of the text, to
     // the left. So, we need to account for this in our display rect.
-    Rect r{static_cast<int16_t>(y - h), x, static_cast<int16_t>(y + h), static_cast<int16_t>(x + w)};
+    // Descent is a negative number, representing the pixels below the baseline the text may extend.
+    auto descent = TTF_GetFontDescent(tt_font);
+    Rect r{
+        static_cast<int16_t>(y - h - descent),
+        x,
+        static_cast<int16_t>(y - descent),
+        static_cast<int16_t>(x + w)};
     TTF_DestroyText(t);
     if (!draw_text_ttf(sdlRenderer, tt_font, processed_text, r)) {
       return -1;
@@ -434,7 +480,9 @@ public:
                 sdlRenderer,
                 text,
                 Rect{0, 0, get_height(), get_width()},
-                port->txFont)) {
+                port->txFont,
+                port->txSize,
+                port->txFace)) {
           wm_log.error("Error when rendering text item %d: %s", resource_id, SDL_GetError());
           SDL_SetRenderTarget(sdlRenderer.get(), NULL);
           dirty = false;
@@ -447,7 +495,9 @@ public:
                 sdlRenderer,
                 text,
                 Rect{0, 0, get_height(), get_width()},
-                port->txFont)) {
+                port->txFont,
+                port->txSize,
+                port->txFace)) {
           wm_log.error("Error when rendering button text item %d: %s", resource_id, SDL_GetError());
           SDL_SetRenderTarget(sdlRenderer.get(), NULL);
           dirty = false;
@@ -460,7 +510,9 @@ public:
                 sdlRenderer,
                 text,
                 Rect{0, 0, get_height(), get_width()},
-                port->txFont)) {
+                port->txFont,
+                port->txSize,
+                port->txFace)) {
           wm_log.error("Error when rendering editable text item %d: %s", resource_id, SDL_GetError());
           SDL_SetRenderTarget(sdlRenderer.get(), NULL);
           dirty = false;
@@ -698,7 +750,7 @@ public:
 
     SDL_SetRenderTarget(sdlRenderer.get(), sdlTexture);
 
-    int width = ::draw_text(sdlRenderer, text, pen_loc.h, pen_loc.v, font_id);
+    int width = ::draw_text(sdlRenderer, text, pen_loc.h, pen_loc.v, font_id, port->txSize, port->txFace);
     port->pnLoc.h += width;
 
     // Restore window as the render target
@@ -717,12 +769,12 @@ public:
 
   void handle_text_input(const std::string& text, std::shared_ptr<DialogItem> item) {
     item->append_text(text);
-    render();
+    render(true);
   }
 
   void delete_char(std::shared_ptr<DialogItem> item) {
     item->delete_char();
-    render();
+    render(true);
   }
 
   void sync() {
@@ -758,7 +810,7 @@ public:
     }
   }
 
-  void render() {
+  void render(bool renderDialogItems = true) {
     if (!cWindowRecord.visible) {
       return;
     }
@@ -791,7 +843,7 @@ public:
     // update all static and editable text items and to draw their display rectangles. The
     // DrawDialog procedure also calls the application-defined items’ draw procedures if
     // the items’ rectangles are within the update region.
-    if (dialogItems) {
+    if (dialogItems && renderDialogItems) {
       for (auto item : renderableItems) {
         item->render();
         // DEBUG
@@ -833,7 +885,7 @@ public:
 
   void show() {
     cWindowRecord.visible = true;
-    render();
+    render(false);
     SDL_ShowWindow(sdlWindow);
   }
 
@@ -925,7 +977,9 @@ public:
     record_to_window.emplace(&wr->port, window);
     sdl_window_id_to_window.emplace(window->sdl_window_id(), window);
 
-    window->render();
+    if (wr->visible) {
+      window->render(false);
+    }
 
     return &wr->port;
   }
@@ -1098,7 +1152,7 @@ void WindowManager_DrawDialog(WindowPtr theWindow) {
   CWindowRecord* const windowRecord = reinterpret_cast<CWindowRecord*>(theWindow);
   auto window = wm.window_for_record(theWindow);
 
-  window->render();
+  window->render(true);
 }
 
 void WindowManager_DisposeWindow(WindowPtr theWindow) {
@@ -1176,7 +1230,7 @@ void SetDialogItemText(Handle item_handle, ConstStr255Param text) {
   auto item = dialog_items_by_opaque_handle.at(handle);
   item->set_text(string_for_pstr<256>(text));
   auto window = item->window.lock();
-  window->render();
+  window->render(true);
 }
 
 int16_t StringWidth(ConstStr255Param s) {
@@ -1400,6 +1454,14 @@ CWindowPtr GetNewCWindow(int16_t res_id, void* wStorage, WindowPtr behind) {
   return WindowManager_CreateNewWindow(res_id, false, behind);
 }
 
+void DisposeDialog(DialogPtr theDialog) {
+  WindowManager_DisposeWindow(theDialog);
+}
+
+void DrawDialog(DialogPtr theDialog) {
+  WindowManager_DrawDialog(theDialog);
+}
+
 void ParamText(ConstStr255Param param0, ConstStr255Param param1, ConstStr255Param param2, ConstStr255Param param3) {
   param_text_entries[0] = string_for_pstr<256>(param0);
   param_text_entries[1] = string_for_pstr<256>(param1);
@@ -1463,4 +1525,22 @@ void DrawString(ConstStr255Param s) {
 
   window->draw_text(str);
   window->render();
+}
+
+int16_t TextWidth(const void* textBuf, int16_t firstByte, int16_t byteCount) {
+  // Realmz always calls this procedure with 0 as the first byte, and the full
+  // strlen as the byteCount, so we can ignore those parameters and just measure
+  // the full string.
+  // Realmz also seems to only call this with cstrings, so we're good there as well.
+  CGrafPtr port{};
+  GetPort(&port);
+
+  return ::draw_text(
+      get_dummy_renderer(),
+      static_cast<const char*>(textBuf),
+      0,
+      0,
+      port->txFont,
+      port->txSize,
+      port->txFace);
 }

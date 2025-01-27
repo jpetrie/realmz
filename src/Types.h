@@ -60,16 +60,6 @@ typedef struct {
 typedef Rect* RectPtr;
 
 typedef unsigned char Style;
-enum {
-  normal = 0x00,
-  bold = 0x01,
-  italic = 0x02,
-  underline = 0x04,
-  outline = 0x08,
-  shadow = 0x10,
-  condense = 0x20,
-  extend = 0x40,
-};
 
 typedef long (*ProcPtr)(void);
 

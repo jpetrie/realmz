@@ -211,6 +211,7 @@ void TextFont(uint16_t font) {
 }
 
 void TextMode(int16_t mode) {
+  globals->thePort->txMode = mode;
 }
 
 void TextSize(uint16_t size) {
@@ -218,6 +219,7 @@ void TextSize(uint16_t size) {
 }
 
 void TextFace(int16_t face) {
+  globals->thePort->txFace = face;
 }
 
 void GetPort(GrafPtr* port) {

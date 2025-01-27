@@ -50,14 +50,6 @@ void GetSoundVol(short* x) {
   *x = v >> 16;
 }
 
-void DisposeDialog(DialogPtr theDialog) {
-  WindowManager_DisposeWindow(theDialog);
-}
-
-void DrawDialog(DialogPtr theDialog) {
-  WindowManager_DrawDialog(theDialog);
-}
-
 void EraseRect(const Rect* r) {
 }
 
@@ -336,10 +328,6 @@ int32_t DeltaPoint(Point ptA, Point ptB) {
 }
 
 void FrameRect(const Rect* r) {
-}
-
-int16_t TextWidth(const void* textBuf, int16_t firstByte, int16_t byteCount) {
-  return 0;
 }
 
 TEHandle TENew(const Rect* destRect, const Rect* viewRect) {

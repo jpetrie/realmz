@@ -17,6 +17,17 @@ enum {
   plainDBox = 2,
 };
 
+enum {
+  normal = 0x00,
+  bold = 0x01,
+  italic = 0x02,
+  underline = 0x04,
+  outline = 0x08,
+  shadow = 0x10,
+  condense = 0x20,
+  extend = 0x40,
+};
+
 typedef struct {
   int width;
   int height;
@@ -73,6 +84,9 @@ void NumToString(int32_t num, Str255 str);
 void StringToNum(ConstStr255Param str, int32_t* num);
 void ModalDialog(ModalFilterProcPtr filterProc, short* itemHit);
 void DrawString(ConstStr255Param s);
+void DrawDialog(DialogPtr theDialog);
+void DisposeDialog(DialogPtr theDialog);
+int16_t TextWidth(const void* textBuf, int16_t firstByte, int16_t byteCount);
 
 #ifdef __cplusplus
 } // extern "C"
