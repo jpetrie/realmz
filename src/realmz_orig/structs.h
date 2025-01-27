@@ -15,8 +15,7 @@ typedef struct {
   char auto256, iteminfo, autoweapswitch, nomusic, usenpc, castonfriends, allowfumble, allowunique;
   short defaultfont;
   int32_t serial;
-  // Str255 name_str;
-  char name_str[1]; // TODO: Figure out how to load serialized Pascal strings
+  Str255 name_str;
   char autonote, portraitchoice, currentscenariohold, blank3;
   short journalindex2, blank5, blank6, blank7, blank8, blank9, blank10;
 } PrefRecord, *PrefPtr, **PrefHandle;

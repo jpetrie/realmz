@@ -70,7 +70,7 @@ typedef struct {
 
   // The following fields are not part of the original Classic Mac OS API
   uint32_t sdl_window_id;
-  char* text;
+  char text[32];
 } EventRecord;
 
 uint8_t mac_vk_from_message(uint32_t message);

@@ -648,7 +648,7 @@ public:
     }
   }
 
-  void handle_text_input(char* text, std::shared_ptr<DialogItem> item) {
+  void handle_text_input(const std::string& text, std::shared_ptr<DialogItem> item) {
     item->append_text(text);
     render();
   }

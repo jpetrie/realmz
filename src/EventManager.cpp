@@ -343,7 +343,6 @@ protected:
     ev.modifiers = this->modifier_flags;
     ev.sdl_window_id = sdl_window_id;
     if (text && strlen(text)) {
-      ev.text = (char*)malloc(strlen(text) + 1);
       strcpy(ev.text, text);
     }
   }
