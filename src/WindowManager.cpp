@@ -226,7 +226,7 @@ bool load_font(int16_t font_id, TTF_Font** ttf_font_handle, ResourceDASM::Bitmap
     *bm_font_handle = &bm_renderers_by_id.emplace(font_id, decoded).first->second;
   }
 
-  return (*bm_font_handle == nullptr) ? false : true;
+  return true;
 }
 
 bool draw_text(std::shared_ptr<SDL_Renderer> sdlRenderer, const std::string& text, const Rect& dispRect, int16_t font_id) {
