@@ -1,6 +1,7 @@
 #pragma once
 
 #include "QuickDraw.h"
+#include "SDL3/SDL.h"
 #include "Types.h"
 
 // See Event Manager chapter in Inside Macintosh volume 1, starting on page 241
@@ -28,6 +29,8 @@ enum {
 #define inMenuBar 1
 #define inSysWindow 2
 #define inContent 3
+
+#define MAC_VK_BACKSPACE 0x33
 
 #ifdef __cplusplus
 extern "C" {
@@ -67,7 +70,10 @@ typedef struct {
 
   // The following fields are not part of the original Classic Mac OS API
   uint32_t sdl_window_id;
+  char text[32];
 } EventRecord;
+
+uint8_t mac_vk_from_message(uint32_t message);
 
 uint32_t TickCount(void);
 uint32_t GetDblTime(void);

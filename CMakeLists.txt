@@ -23,6 +23,7 @@ find_package(phosg REQUIRED)
 find_package(resource_file REQUIRED)
 find_package(SDL3 REQUIRED)
 find_package(SDL3_ttf REQUIRED)
+find_package(SDL3_image REQUIRED)
 
 # Executable definition
 set(SOURCES
@@ -284,6 +285,7 @@ target_link_libraries(Realmz
     PUBLIC
     ${SDL3_LIBRARIES}
     SDL3_ttf::SDL3_ttf
+    SDL3_image::SDL3_image
     resource_file::resource_file
     "-framework Foundation"
     "-framework Cocoa"

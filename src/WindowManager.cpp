@@ -1,5 +1,8 @@
 #include "WindowManager.h"
 
+#include <SDL3/SDL_keyboard.h>
+#include <SDL3/SDL_properties.h>
+#include <memory>
 #include <vector>
 
 #include <SDL3/SDL.h>
@@ -7,6 +10,7 @@
 #include <SDL3/SDL_pixels.h>
 #include <SDL3/SDL_render.h>
 #include <SDL3/SDL_video.h>
+#include <SDL3_image/SDL_image.h>
 #include <SDL3_ttf/SDL_ttf.h>
 
 #include <phosg/Strings.hh>
@@ -95,6 +99,13 @@ static int16_t macos_dialog_item_type_for_resource_dasm_type(DialogItemType type
   }
 }
 
+void debug_renderer_state(SDL_Renderer* renderer, const std::string& label) {
+  SDL_Surface* surface = SDL_RenderReadPixels(renderer, NULL);
+  if (surface) {
+    IMG_SavePNG(surface, label.c_str());
+  }
+}
+
 void copy_rect(Rect& dst, const ResourceDASM::Rect& src) {
   dst.top = src.y1;
   dst.left = src.x1;
@@ -108,7 +119,20 @@ bool render_surface(std::shared_ptr<SDL_Renderer> sdlRenderer, SDL_Surface* surf
   text_dest.y = rect.top;
   text_dest.w = std::min<float>(rect.right - rect.left, surface->w);
   text_dest.h = std::min<float>(rect.bottom - rect.top, surface->h);
-  auto text_texture = sdl_make_unique(SDL_CreateTextureFromSurface(sdlRenderer.get(), surface));
+  auto texture = SDL_CreateTextureFromSurface(sdlRenderer.get(), surface);
+
+  if (!texture) {
+    wm_log.error("Could not render surface: %s", SDL_GetError());
+    return false;
+  }
+
+  auto text_texture = sdl_make_unique(texture);
+
+  // DEBUG: Uncomment for debugging rendered surfaces
+  if (text_texture) {
+    // IMG_SavePNG(surface, "render_surface.png");
+  }
+
   if (!text_texture) {
     wm_log.error("Failed to create texture when rendering text: %s", SDL_GetError());
     return false;
@@ -168,6 +192,9 @@ bool draw_text_bitmap(
   std::string wrapped_text = renderer.wrap_text_to_pixel_width(processed_text, rect_w);
   renderer.render_text(img, wrapped_text, 0, 0, GetForeColorRGBA8888());
 
+  // DEBUG: Uncomment for debugging text rendering
+  // img.save("bitmap_text.png", phosg::Image::Format::PNG);
+
   auto text_surface = sdl_make_unique(SDL_CreateSurfaceFrom(
       rect_w, rect_h, SDL_PIXELFORMAT_RGBA32, img.get_data(), 4 * img.get_width()));
   if (!text_surface) {
@@ -188,6 +215,7 @@ bool draw_text(std::shared_ptr<SDL_Renderer> sdlRenderer, const std::string& tex
   try {
     tt_font = tt_fonts_by_id.at(font_id);
   } catch (const std::out_of_range&) {
+    wm_log.error("Could not load font id %d", font_id);
   }
   if (tt_font != nullptr) {
     return draw_text_ttf(sdlRenderer, tt_font, processed_text, dispRect);
@@ -227,6 +255,7 @@ public:
   bool enabled;
   std::weak_ptr<Window> window;
   std::shared_ptr<SDL_Renderer> sdlRenderer;
+  std::shared_ptr<SDL_Window> sdlWindow;
   DialogItemHandle handle;
   static DialogItemHandle next_di_handle;
   static size_t next_item_id;
@@ -376,6 +405,19 @@ public:
         }
         break;
       }
+      case ResourceFile::DecodedDialogItem::Type::EDIT_TEXT: {
+        if (!draw_text(
+                sdlRenderer,
+                text,
+                Rect{0, 0, get_height(), get_width()},
+                port->txFont)) {
+          wm_log.error("Error when rendering editable text item %d: %s", resource_id, SDL_GetError());
+          SDL_SetRenderTarget(sdlRenderer.get(), NULL);
+          dirty = false;
+          return;
+        }
+        break;
+      }
       default:
         // TODO: Render other DITL types
         break;
@@ -420,6 +462,18 @@ public:
     text = std::move(new_text);
     dirty = true;
   }
+
+  void append_text(const std::string& new_text) {
+    text += new_text;
+    dirty = true;
+  }
+
+  void delete_char() {
+    if (text.size()) {
+      text.pop_back();
+      dirty = true;
+    }
+  }
 };
 
 // Initialize static handle sequence
@@ -435,6 +489,7 @@ public:
         dialogItems{dialog_items} {
     w = bounds.right - bounds.left;
     h = bounds.bottom - bounds.top;
+    focusedItem = nullptr;
   }
 
   void init() {
@@ -446,7 +501,8 @@ public:
     if (!cWindowRecord.visible) {
       flags |= SDL_WINDOW_HIDDEN;
     }
-    sdlWindow = SDL_CreateWindow(title.c_str(), w, h, flags);
+    std::shared_ptr<SDL_Window> wind(SDL_CreateWindow(title.c_str(), w, h, flags), SDL_DestroyWindow);
+    sdlWindow = wind.get();
 
     if (sdlWindow == NULL) {
       throw std::runtime_error(phosg::string_printf("Could not create window: %s\n", SDL_GetError()));
@@ -474,12 +530,53 @@ public:
       for (auto di : *dialogItems) {
         di->window = this->weak_from_this();
         di->sdlRenderer = sdlRenderer;
+        di->sdlWindow = wind;
+
+        // Set the focused text field to be the first EDIT_TEXT item encountered
+        if (!focusedItem && di->type == DialogItemType::EDIT_TEXT) {
+          focusedItem = di;
+        }
+
+        if (di->type == DialogItemType::TEXT || di->type == DialogItemType::EDIT_TEXT) {
+          textItems.emplace_back(di);
+        } else {
+          renderableItems.emplace_back(di);
+        }
+
+        if (di->type == DialogItemType::EDIT_TEXT && !text_editing_active) {
+          SDL_Rect r{
+              di->rect.left,
+              di->rect.top,
+              di->rect.right - di->rect.left,
+              di->rect.bottom - di->rect.top};
+          init_text_editing(r);
+        }
       }
     }
 
     SDL_SetRenderTarget(sdlRenderer.get(), sdlTexture);
     SDL_RenderClear(sdlRenderer.get());
     SDL_SetRenderTarget(sdlRenderer.get(), NULL);
+  }
+
+  void init_text_editing(SDL_Rect r) {
+    // Macintosh Toolbox Essentials 6-32
+    if (!SDL_SetTextInputArea(sdlWindow, &r, 0)) {
+      wm_log.error("Could not create text area: %s", SDL_GetError());
+    }
+
+    SDL_PropertiesID props = SDL_CreateProperties();
+    SDL_SetBooleanProperty(props, SDL_PROP_TEXTINPUT_AUTOCORRECT_BOOLEAN, false);
+    SDL_SetBooleanProperty(props, SDL_PROP_TEXTINPUT_MULTILINE_BOOLEAN, false);
+    SDL_SetNumberProperty(props, SDL_PROP_TEXTINPUT_CAPITALIZATION_NUMBER, SDL_CAPITALIZE_NONE);
+
+    if (!SDL_StartTextInputWithProperties(sdlWindow, props)) {
+      wm_log.error("Could not start text input: %s", SDL_GetError());
+    }
+
+    SDL_DestroyProperties(props);
+
+    text_editing_active = true;
   }
 
   ~Window() {
@@ -541,6 +638,26 @@ public:
     SDL_SetRenderTarget(sdlRenderer.get(), NULL);
   }
 
+  std::shared_ptr<DialogItem> get_focused_item() {
+    return focusedItem;
+  }
+
+  void set_focused_item(std::shared_ptr<DialogItem> item) {
+    if (item->window.lock()->sdlWindow == sdlWindow) {
+      focusedItem = item;
+    }
+  }
+
+  void handle_text_input(const std::string& text, std::shared_ptr<DialogItem> item) {
+    item->append_text(text);
+    render();
+  }
+
+  void delete_char(std::shared_ptr<DialogItem> item) {
+    item->delete_char();
+    render();
+  }
+
   void sync() {
     SDL_RenderPresent(sdlRenderer.get());
     SDL_SyncWindow(sdlWindow);
@@ -586,6 +703,9 @@ public:
     SDL_RenderClear(sdlRenderer.get());
     SDL_SetRenderDrawColor(sdlRenderer.get(), r, g, b, a);
 
+    // DEBUG
+    // debug_renderer_state(sdlRenderer.get(), "window.png");
+
     if (SDL_GetRenderTarget(sdlRenderer.get())) {
       throw std::logic_error("Tried to render window, but non-default target set");
     }
@@ -594,15 +714,31 @@ public:
     GetPort(&port);
     if (port->bkPixPat) {
       render_background(port->bkPixPat);
+      // DEBUG
+      // debug_renderer_state(sdlRenderer.get(), "window.png");
     }
 
+    // The DrawDialog procedure draws the entire contents of the specified dialog box. The
+    // DrawDialog procedure draws all dialog items, calls the Control Manager procedure
+    // DrawControls to draw all controls, and calls the TextEdit procedure TEUpdate to
+    // update all static and editable text items and to draw their display rectangles. The
+    // DrawDialog procedure also calls the application-defined items’ draw procedures if
+    // the items’ rectangles are within the update region.
     if (dialogItems) {
-      for (auto item : *dialogItems) {
+      for (auto item : renderableItems) {
+        item->render();
+        // DEBUG
+        // debug_renderer_state(sdlRenderer.get(), "window.png");
+      }
+
+      for (auto item : textItems) {
         item->render();
       }
     }
 
     SDL_RenderTexture(sdlRenderer.get(), sdlTexture, NULL, NULL);
+    // DEBUG
+    // debug_renderer_state(sdlRenderer.get(), "window.png");
 
     // Flush changes to screen
     sync();
@@ -638,6 +774,10 @@ public:
     return SDL_GetWindowID(this->sdlWindow);
   }
 
+  SDL_Window* sdl_window() const {
+    return sdlWindow;
+  }
+
   std::shared_ptr<std::vector<std::shared_ptr<DialogItem>>> get_dialog_items() const {
     return this->dialogItems;
   }
@@ -664,7 +804,11 @@ private:
   SDL_Window* sdlWindow;
   std::shared_ptr<SDL_Renderer> sdlRenderer;
   std::shared_ptr<std::vector<std::shared_ptr<DialogItem>>> dialogItems;
+  std::vector<std::shared_ptr<DialogItem>> renderableItems;
+  std::vector<std::shared_ptr<DialogItem>> textItems;
+  std::shared_ptr<DialogItem> focusedItem;
   SDL_Texture* sdlTexture; // Use a texture to hold the window's rendered base canvas
+  bool text_editing_active;
 };
 
 class WindowManager {
@@ -1052,6 +1196,41 @@ Boolean DialogSelect(const EventRecord* ev, DialogPtr* dialog, short* item_hit) 
     }
   }
 
+  // Backspace
+  if (ev->what == keyDown && (mac_vk_from_message(ev->message) == MAC_VK_BACKSPACE)) {
+    auto window = wm.window_for_sdl_window_id(ev->sdl_window_id);
+
+    auto item = window->get_focused_item();
+
+    if (!item) {
+      return false;
+    }
+
+    window->delete_char(item);
+  }
+
+  // Handle cases (2) and (3) above. These would normally be emitted as keyDown events, but SDL distinguishes
+  // key downs that are part of text input as distinct event types. See EventManager::enqueue_sdl_event().
+  if (ev->what == app4Evt) {
+    try {
+      auto window = wm.window_for_sdl_window_id(ev->sdl_window_id);
+
+      // Text input always happens in the currently focused item
+      auto item = window->get_focused_item();
+
+      // Case (3)
+      if (!item) {
+        return false;
+      } else {
+        // Here is where the Classic OS would intercept key down events that took place in an editable
+        // text field and delegate processing to TextEdit. Since SDL provides dedicated event types for
+        // text editing, we can do the same.
+        window->handle_text_input(ev->text, item);
+      }
+    } catch (const std::out_of_range&) {
+    }
+  }
+
   // Handle case (6) described above
   if (ev->what == mouseDown) {
     try {
@@ -1059,6 +1238,12 @@ Boolean DialogSelect(const EventRecord* ev, DialogPtr* dialog, short* item_hit) 
       auto item = window->dialog_item_for_position(ev->where, true);
       if (item) {
         *item_hit = item->item_id;
+
+        // Currently, only editable text fields can be focused on, for text input
+        if (item->type == DialogItemType::EDIT_TEXT) {
+          window->set_focused_item(item);
+        }
+
         return true;
       }
     } catch (const std::out_of_range&) {
