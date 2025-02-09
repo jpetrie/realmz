@@ -70,6 +70,8 @@ public:
   void draw_background(sdl_window_shared sdlWindow, PixPatHandle bkPixPat);
 
 private:
-  // Forward declaration of struct containing private member functions
-  struct Private;
+  bool init_renderer(GraphicsCanvas& self);
+  SDL_Renderer* start_draw(const GraphicsCanvas& self);
+  void end_draw(const GraphicsCanvas& self);
+  void clear(SDL_Renderer* renderer);
 };
