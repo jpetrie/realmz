@@ -588,7 +588,7 @@ public:
     if (this->control && (this->control->min != min)) {
       this->control->min = min;
       this->control->max = std::max<int16_t>(this->control->max, this->control->min);
-      this->control->value = std::max<int16_t>(this->control->max, this->control->value);
+      this->control->value = std::max<int16_t>(this->control->min, this->control->value);
       this->dirty = true;
     }
     return this->dirty;
