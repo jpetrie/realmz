@@ -88,7 +88,6 @@ Boolean DialogSelect(const EventRecord* ev, DialogPtr* dlg, short* item_hit);
 void SystemClick(const EventRecord* ev, WindowPtr window);
 void DisposeWindow(WindowPtr theWindow);
 void BringToFront(WindowPtr theWindow);
-void ParamText(ConstStr255Param param0, ConstStr255Param param1, ConstStr255Param param2, ConstStr255Param param3);
 void NumToString(int32_t num, Str255 str);
 void StringToNum(ConstStr255Param str, int32_t* num);
 void ModalDialog(ModalFilterProcPtr filterProc, short* itemHit);

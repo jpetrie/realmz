@@ -32,9 +32,11 @@ class WindowManager;
 class Window;
 
 inline size_t unwrap_opaque_handle(Handle h) {
+  static_assert(sizeof(size_t) == sizeof(Handle));
   return reinterpret_cast<size_t>(h);
 }
 inline Handle wrap_opaque_handle(size_t h) {
+  static_assert(sizeof(size_t) == sizeof(Handle));
   return reinterpret_cast<Handle>(h);
 }
 
@@ -49,8 +51,6 @@ static size_t generate_opaque_handle() {
   static size_t next_handle = 1;
   return next_handle++;
 }
-
-static std::array<std::string, 4> param_text_entries;
 
 typedef std::variant<TTF_Font*, ResourceDASM::BitmapFontRenderer> Font;
 
@@ -107,7 +107,7 @@ enum class ControlType {
 struct Control {
   std::weak_ptr<DialogItem> dialog_item; // May be null for dynamically-created controls!
   int32_t cntl_resource_id; // 0x00010000 = not from a resource
-  size_t handle;
+  size_t opaque_handle;
   ControlType type;
   Rect bounds;
   int16_t value;
@@ -128,7 +128,7 @@ protected:
       const std::string& title) {
     auto ret = std::make_shared<Control>();
     ret->cntl_resource_id = cntl_res_id;
-    ret->handle = generate_opaque_handle();
+    ret->opaque_handle = generate_opaque_handle();
     switch (proc_id) {
       case 0:
         ret->type = ControlType::BUTTON;
@@ -206,9 +206,9 @@ public:
         {ControlType::POPUP_MENU, "POPUP_MENU"},
     };
     return phosg::string_printf(
-        "Control(cntl_resource_id=%hd, handle=%zu, type=%s, value=%hd, min=%hd, max=%hd, visible=%s)",
+        "Control(cntl_resource_id=%hd, opaque_handle=%zu, type=%s, value=%hd, min=%hd, max=%hd, visible=%s)",
         this->cntl_resource_id,
-        this->handle,
+        this->opaque_handle,
         type_strs.at(this->type),
         this->value,
         this->min,
@@ -283,7 +283,7 @@ public:
   }
   // Constructor from a control
   DialogItem(std::shared_ptr<Control> control)
-      : opaque_handle{generate_opaque_handle()},
+      : opaque_handle{control->opaque_handle},
         ditl_resource_id{0x00010000},
         item_id{0},
         type{DialogItemType::UNKNOWN},
@@ -587,14 +587,18 @@ public:
   bool set_control_minimum(short min) {
     if (this->control && (this->control->min != min)) {
       this->control->min = min;
+      this->control->max = std::max<int16_t>(this->control->max, this->control->min);
+      this->control->value = std::max<int16_t>(this->control->max, this->control->value);
       this->dirty = true;
     }
     return this->dirty;
   }
 
   bool set_control_maximum(short max) {
-    if (this->control) {
+    if (this->control && (this->control->max != max)) {
       this->control->max = max;
+      this->control->min = std::min<int16_t>(this->control->max, this->control->min);
+      this->control->value = std::min<int16_t>(this->control->max, this->control->value);
       this->dirty = true;
     }
     return this->dirty;
@@ -623,7 +627,7 @@ std::shared_ptr<Control> Control::from_dialog_item(const DialogItem& item) {
 
   auto ret = std::make_shared<Control>();
   ret->cntl_resource_id = 0x00010000;
-  ret->handle = generate_opaque_handle();
+  ret->opaque_handle = item.opaque_handle;
   ret->type = type;
   ret->bounds = item.rect;
   ret->value = 0;
@@ -833,9 +837,9 @@ public:
       for (auto item : this->control_items) {
         item->render();
       }
-    }
-    for (auto item : this->text_items) {
-      item->render();
+      for (auto item : this->text_items) {
+        item->render();
+      }
     }
 
     canvas.render(sdl_window, NULL);
