@@ -5,7 +5,6 @@
 #include "MemoryManager.h"
 #include "ResourceManager.h"
 #include "StringConvert.hpp"
-#include <resource_file/BitmapFontRenderer.hh>
 
 static std::unordered_map<int16_t, TTF_Font*> tt_fonts_by_id;
 static std::unordered_map<int16_t, ResourceDASM::BitmapFontRenderer>
