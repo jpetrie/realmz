@@ -122,10 +122,23 @@ bool draw_text_ttf(
   }
 }
 
+bool render_img(SDL_Renderer* sdlRenderer, const phosg::Image& img, const Rect& rect) {
+  auto w = img.get_width();
+  auto h = img.get_height();
+  auto surface = sdl_make_unique(SDL_CreateSurfaceFrom(
+      w, h, SDL_PIXELFORMAT_RGBA32, const_cast<void*>(img.get_data()), 4 * img.get_width()));
+  if (!surface) {
+    canvas_log.error("Failed to create surface when rendering text: %s", SDL_GetError());
+    return false;
+  } else {
+    return render_surface(sdlRenderer, surface.get(), rect);
+  }
+}
+
 bool draw_text_bitmap(
     SDL_Renderer* sdlRenderer,
     const ResourceDASM::BitmapFontRenderer& renderer,
-    const std::string& processed_text,
+    const std::string& text,
     const Rect& rect,
     uint32_t rgba8888_color) {
   size_t rect_w = rect.right - rect.left;
@@ -133,20 +146,12 @@ bool draw_text_bitmap(
   phosg::Image img(rect_w, rect_h, true);
   img.clear(0xFF00FF00); // Transparent (with magenta so it will be obvious if compositing is done incorrectly)
 
-  std::string wrapped_text = renderer.wrap_text_to_pixel_width(processed_text, rect_w);
+  std::string wrapped_text = renderer.wrap_text_to_pixel_width(text, rect_w);
   renderer.render_text(img, wrapped_text, 0, 0, rgba8888_color);
 
   // DEBUG: Uncomment for debugging text rendering
   // img.save("bitmap_text.png", phosg::Image::Format::PNG);
-
-  auto text_surface = sdl_make_unique(SDL_CreateSurfaceFrom(
-      rect_w, rect_h, SDL_PIXELFORMAT_RGBA32, img.get_data(), 4 * img.get_width()));
-  if (!text_surface) {
-    canvas_log.error("Failed to create surface when rendering text: %s", SDL_GetError());
-    return false;
-  } else {
-    return render_surface(sdlRenderer, text_surface.get(), rect);
-  }
+  return render_img(sdlRenderer, img, rect);
 }
 
 int draw_text(
@@ -160,16 +165,10 @@ int draw_text(
     const RGBColor& color) {
   std::string processed_text = replace_param_text(text);
 
-  TTF_Font* tt_font = nullptr;
-  ResourceDASM::BitmapFontRenderer* bm_renderer = nullptr;
+  auto font = load_font(font_id);
 
-  bool success = load_font(font_id, &tt_font, &bm_renderer);
-
-  if (!success) {
-    return -1;
-  }
-
-  if (tt_font != nullptr) {
+  if (std::holds_alternative<TTF_Font*>(font)) {
+    auto tt_font = std::get<TTF_Font*>(font);
     TTF_SetFontSize(tt_font, pt);
     set_font_face(tt_font, face);
     TTF_Text* t = TTF_CreateText(NULL, tt_font, processed_text.c_str(), 0);
@@ -190,9 +189,20 @@ int draw_text(
       return -1;
     }
     return w;
-  } else if (bm_renderer) {
-    canvas_log.error("Rendering bitmap text with unknown dimensions is not supported");
-    return -1;
+  } else if (std::holds_alternative<ResourceDASM::BitmapFontRenderer>(font)) {
+    auto bm_font = std::get<ResourceDASM::BitmapFontRenderer>(font);
+    auto dimensions = bm_font.pixel_dimensions_for_text(processed_text);
+    auto width = dimensions.first;
+    auto height = dimensions.second;
+
+    auto img = phosg::Image{width, height, true};
+    Rect rect{y, x, static_cast<int16_t>(y + height), static_cast<int16_t>(x + width)};
+
+    bm_font.render_text(img, text, 0, 0, rgba8888_for_rgb_color(color));
+
+    render_img(sdlRenderer, img, rect);
+
+    return width;
   }
 
   canvas_log.error("No renderer is available for font %hd; cannot render text \"%s\"", font_id, text.c_str());
@@ -360,21 +370,18 @@ bool GraphicsCanvas::draw_text(
 
   std::string processed_text = replace_param_text(text);
 
-  TTF_Font* tt_font = nullptr;
-  ResourceDASM::BitmapFontRenderer* bm_renderer = nullptr;
+  auto font = load_font(port->txFont);
 
-  bool success = load_font(port->txFont, &tt_font, &bm_renderer);
+  bool success{false};
 
-  if (!success) {
-    return false;
-  }
-
-  if (tt_font != nullptr) {
+  if (std::holds_alternative<TTF_Font*>(font)) {
+    auto tt_font = std::get<TTF_Font*>(font);
     TTF_SetFontSize(tt_font, port->txSize);
     set_font_face(tt_font, port->txFace);
     success = ::draw_text_ttf(renderer, tt_font, processed_text, dispRect, sdl_color_for_rgb_color(port->rgbFgColor));
-  } else if (bm_renderer) {
-    success = ::draw_text_bitmap(renderer, *bm_renderer, processed_text, dispRect, rgba8888_for_rgb_color(port->rgbFgColor));
+  } else if (std::holds_alternative<ResourceDASM::BitmapFontRenderer>(font)) {
+    auto bm_font = std::get<ResourceDASM::BitmapFontRenderer>(font);
+    success = ::draw_text_bitmap(renderer, bm_font, processed_text, dispRect, rgba8888_for_rgb_color(port->rgbFgColor));
   }
 
   if (!success) {
