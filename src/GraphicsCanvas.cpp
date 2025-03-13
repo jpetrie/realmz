@@ -192,8 +192,7 @@ int draw_text(
   } else if (std::holds_alternative<ResourceDASM::BitmapFontRenderer>(font)) {
     auto bm_font = std::get<ResourceDASM::BitmapFontRenderer>(font);
     auto dimensions = bm_font.pixel_dimensions_for_text(processed_text);
-    auto width = dimensions.first;
-    auto height = dimensions.second;
+    auto [width, height] = dimensions;
 
     auto img = phosg::Image{width, height, true};
     Rect rect{y, x, static_cast<int16_t>(y + height), static_cast<int16_t>(x + width)};
