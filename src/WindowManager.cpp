@@ -854,7 +854,7 @@ public:
 
   void show() {
     cWindowRecord.visible = true;
-    render(false);
+    render(true);
     SDL_ShowWindow(sdl_window.get());
   }
 
