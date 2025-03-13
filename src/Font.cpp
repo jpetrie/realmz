@@ -29,28 +29,22 @@ void init_fonts() {
 
 // Tries to load a TrueType font first; if it's not available, use a
 // bitmapped font instead.
-bool load_font(int16_t font_id, TTF_Font** ttf_font_handle,
-    ResourceDASM::BitmapFontRenderer** bm_font_handle) {
+Font load_font(int16_t font_id) {
   try {
-    *ttf_font_handle = tt_fonts_by_id.at(font_id);
-    return true;
+    return tt_fonts_by_id.at(font_id);
   } catch (const std::out_of_range&) {
   }
 
   try {
-    *bm_font_handle = &bm_renderers_by_id.at(font_id);
-    return true;
+    return bm_renderers_by_id.at(font_id);
   } catch (const std::out_of_range&) {
     auto data_handle = GetResource(ResourceDASM::RESOURCE_TYPE_FONT, font_id);
     auto decoded =
         std::make_shared<ResourceDASM::ResourceFile::DecodedFontResource>(
             ResourceDASM::ResourceFile::decode_FONT_only(
                 *data_handle, GetHandleSize(data_handle)));
-    *bm_font_handle =
-        &bm_renderers_by_id.emplace(font_id, decoded).first->second;
+    return bm_renderers_by_id.emplace(font_id, decoded).first->second;
   }
-
-  return (*bm_font_handle == nullptr) ? false : true;
 }
 
 void set_font_face(TTF_Font* font, int16_t face) {

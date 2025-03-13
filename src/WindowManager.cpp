@@ -4,7 +4,6 @@
 #include <SDL3/SDL_properties.h>
 #include <memory>
 #include <stdexcept>
-#include <variant>
 #include <vector>
 
 #include <SDL3/SDL.h>
@@ -52,8 +51,6 @@ static size_t generate_opaque_handle() {
   static size_t next_handle = 1;
   return next_handle++;
 }
-
-typedef std::variant<TTF_Font*, ResourceDASM::BitmapFontRenderer> Font;
 
 using DialogItemType = ResourceDASM::ResourceFile::DecodedDialogItem::Type;
 
