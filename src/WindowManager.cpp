@@ -894,17 +894,13 @@ public:
   }
 
   void remove_text_edit(std::shared_ptr<DialogItem> item) {
-    for (auto i = dialog_items.begin(); i != dialog_items.end(); i++) {
-      if (*i == item) {
-        dialog_items.erase(i);
-        break;
-      }
+    auto it = std::find(dialog_items.begin(), dialog_items.end(), item);
+    if (it != dialog_items.end()) {
+      dialog_items.erase(it);
     }
-    for (auto i = text_items.begin(); i != text_items.end(); i++) {
-      if (*i == item) {
-        text_items.erase(i);
-        break;
-      }
+    it = std::find(text_items.begin(), text_items.end(), item);
+    if (it != text_items.end()) {
+      text_items.erase(it);
     }
   }
 };
@@ -1017,7 +1013,7 @@ void render_window(CGrafPtr record) {
     auto window = wm.window_for_record(record);
     window->render();
   } catch (std::out_of_range) {
-    // This is probably an offscreen GWorld with software rendererer and no window
+    // This is probably an offscreen GWorld with software renderer and no window
     if (lookup_canvas(record)->is_window()) {
       throw std::runtime_error("Tried to render a window from its port, but it doesn't exist in lookup");
     }
