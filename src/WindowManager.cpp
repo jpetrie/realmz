@@ -2,9 +2,9 @@
 
 #include <SDL3/SDL_keyboard.h>
 #include <SDL3/SDL_properties.h>
+#include <list>
 #include <memory>
 #include <stdexcept>
-#include <vector>
 
 #include <SDL3/SDL.h>
 #include <SDL3/SDL_events.h>
@@ -974,6 +974,9 @@ public:
       DialogItem::all_items[di->opaque_handle] = di;
     }
 
+    window_list.insert(window_list.begin(), window);
+    window->bring_to_front();
+
     return window->get_port();
   }
 
@@ -992,6 +995,7 @@ public:
     reset_mouse_state();
 
     sdl_window_id_to_window.erase(window_it->second->sdl_window_id());
+    window_list.remove(window_it->second);
     record_to_window.erase(window_it);
 
     // If the current port is this window's port, set the current port back to
@@ -1013,9 +1017,28 @@ public:
     return dialog_items_by_handle.at(handle);
   }
 
+  std::shared_ptr<Window> front_window() {
+    if (window_list.empty()) {
+      return nullptr;
+    } else {
+      return window_list.front();
+    }
+  }
+
+  void bring_to_front(std::shared_ptr<Window> window) {
+    auto it = std::find(window_list.begin(), window_list.end(), window);
+    if (it == window_list.end()) {
+      return;
+    }
+    window_list.erase(it);
+    window_list.insert(window_list.begin(), window);
+    window->bring_to_front();
+  }
+
 private:
   std::unordered_map<WindowPtr, std::shared_ptr<Window>> record_to_window;
   std::unordered_map<SDL_WindowID, std::shared_ptr<Window>> sdl_window_id_to_window;
+  std::list<std::shared_ptr<Window>> window_list;
 };
 
 static WindowManager wm;
@@ -1617,13 +1640,17 @@ void GetControlTitle(ControlHandle handle, Str255 title) {
 }
 
 WindowPtr FrontWindow() {
-  return NULL;
+  auto window = wm.front_window();
+  if (window == nullptr) {
+    return NULL;
+  }
+  return window->get_port();
 }
 
 void BringToFront(WindowPtr theWindow) {
   auto window = wm.window_for_record(theWindow);
 
-  window->bring_to_front();
+  wm.bring_to_front(window);
 }
 
 void DisposeWindow(WindowPtr theWindow) {
