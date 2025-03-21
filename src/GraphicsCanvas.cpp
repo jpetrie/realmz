@@ -71,10 +71,12 @@ bool render_surface(SDL_Renderer* sdlRenderer, SDL_Surface* surface, const Rect&
     // IMG_SavePNG(surface, "render_surface.png");
   }
 
+  SDL_FRect src_rect = {0, 0, text_dest.w, text_dest.h};
+
   if (!text_texture) {
     canvas_log.error("Failed to create texture when rendering text: %s", SDL_GetError());
     return false;
-  } else if (!SDL_RenderTexture(sdlRenderer, text_texture.get(), NULL, &text_dest)) {
+  } else if (!SDL_RenderTexture(sdlRenderer, text_texture.get(), &src_rect, &text_dest)) {
     canvas_log.error("Failed to render text texture: %s", SDL_GetError());
     return false;
   }
@@ -113,7 +115,7 @@ bool draw_text_ttf(
     const Rect& rect,
     const SDL_Color& color) {
   auto text_surface = sdl_make_unique(TTF_RenderText_Blended_Wrapped(
-      font, processed_text.data(), processed_text.size(), color, rect.right - rect.left));
+      font, processed_text.data(), processed_text.size(), color, rect.right - rect.left + 50));
   if (!text_surface) {
     canvas_log.error("Failed to create surface when rendering text: %s", SDL_GetError());
     return false;
