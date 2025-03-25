@@ -262,8 +262,18 @@ void updatenpcmenu(void) {
     SetMenuItemText(gNPC, t, (StringPtr)monstername);
     DisableItem(gNPC, t);
     SetItemIcon(gNPC, t, 0);
-    if (t >= heldover)
-      holdover[t].name = 0; // Fantasoft v7.1   Clean out any junk that does not belong.
+    if (t >= heldover) {
+      /* *** CHANGED FROM ORIGINAL IMPLEMENTATION ***
+       * NOTE(danapplegate): This looks to have been a bug. t is a 1-based counting
+       * variable, and is used correctly in the above Menu Manager system
+       * calls. In Pascal convention, these used 1-based indices. However, here, it results
+       * in a buffer overflow when attempting to access one past the last item of holdover.
+       * Below, it appears the other accesses to holdover correctly use t-1.
+       */
+      // holdover[t].name = 0; // Fantasoft v7.1   Clean out any junk that does not belong.
+      holdover[t - 1].name = 0; // Fantasoft v7.1   Clean out any junk that does not belong.
+      /* *** END CHANGES *** */
+    }
   }
 
   for (t = 1; t <= heldover; t++) {

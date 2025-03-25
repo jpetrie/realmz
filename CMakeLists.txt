@@ -298,6 +298,14 @@ target_link_libraries(Realmz
 target_compile_options(Realmz PRIVATE -fsanitize=address)
 target_link_options(Realmz PRIVATE -fsanitize=address)
 
+# Create save game directories. This should happen at cmake install time instead,
+# or during end user installation through an install script
+set(SAVE_GAME_DIRECTORIES "A" "B" "C" "D" "E" "F" "G" "H" "I" "J")
+foreach(SAVE_GAME_DIRECTORY ${SAVE_GAME_DIRECTORIES})
+add_custom_target(build-time-make-save-directory-${SAVE_GAME_DIRECTORY} ALL
+    COMMAND ${CMAKE_COMMAND} -E make_directory "${CMAKE_BINARY_DIR}/Realmz.app/Contents/Resources/Save/Game ${SAVE_GAME_DIRECTORY}")
+endforeach()
+
 if(APPLE)
     set_target_properties(Realmz PROPERTIES
         MACOSX_BUNDLE ON
