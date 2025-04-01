@@ -19,6 +19,7 @@ using sdl_shared_ptr = std::shared_ptr<T>;
 
 using sdl_surface_ptr = sdl_unique_ptr<SDL_Surface, SDL_DestroySurface>;
 using sdl_texture_ptr = sdl_unique_ptr<SDL_Texture, SDL_DestroyTexture>;
+using sdl_cursor_ptr = sdl_unique_ptr<SDL_Cursor, SDL_DestroyCursor>;
 // In SDL3, SDL_DestroyWindow also destroys the associated renderer, if present.
 // So, we only need to create unique pointers for renderers that are not associated
 // with a window.
@@ -28,6 +29,7 @@ using sdl_window_shared = sdl_shared_ptr<SDL_Window>;
 
 sdl_surface_ptr sdl_make_unique(SDL_Surface* s);
 sdl_texture_ptr sdl_make_unique(SDL_Texture* t);
+sdl_cursor_ptr sdl_make_unique(SDL_Cursor* t);
 sdl_renderer_ptr sdl_make_unique(SDL_Renderer* r);
 sdl_renderer_shared sdl_make_shared(SDL_Renderer* r);
 sdl_window_shared sdl_make_shared(SDL_Window* w);

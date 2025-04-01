@@ -17,7 +17,20 @@ inline phosg::StringReader read_from_handle(Handle handle) {
   return phosg::StringReader(*handle, GetHandleSize(handle));
 }
 
-template <typename T>
-T** NewHandleTyped(size_t size = sizeof(T)) {
-  return reinterpret_cast<T**>(NewHandle(size));
+// NewHandleTyped and DisposeHandleTyped are used for allocating C++ objects
+// using the Memory Manager interface. If ObjT's destructor is nontrivial, it
+// must be destroyed using DisposeHandleTyped; if it's trivial, it may be
+// destroyed using the standard DisposeHandle function.
+
+template <typename ObjT, typename... ArgTs>
+ObjT** NewHandleTyped(ArgTs&&... args) {
+  ObjT** ret = reinterpret_cast<ObjT**>(NewHandle(sizeof(ObjT)));
+  new (*ret) ObjT(std::forward<ArgTs>(args)...); // Call constructor
+  return ret;
+}
+
+template <typename ObjT>
+void DisposeHandleTyped(ObjT** handle) {
+  (*handle)->~ObjT();
+  DisposeHandle(reinterpret_cast<Handle>(handle));
 }

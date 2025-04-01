@@ -109,7 +109,6 @@ static inline void C2PStr(char* x) {
 }
 
 typedef Handle GammaTblHandle;
-typedef Handle CCrsrHandle;
 typedef Handle SndListHandle;
 typedef DialogPtr DialogRef;
 typedef BitMap* BitMapPtr;
@@ -161,8 +160,6 @@ OSErr GetDefaultOutputVolume(uint32_t* level);
 void GetSoundVol(short* x);
 OSErr SetDefaultOutputVolume(uint32_t level);
 #define SetSoundVol SetDefaultOutputVolume
-CCrsrHandle GetCCursor(uint16_t crsrID);
-void SetCCursor(CCrsrHandle cCrsr);
 WindowPtr FrontWindow(void);
 void TextFont(uint16_t font);
 int32_t MenuKey(int16_t ch);
@@ -211,18 +208,13 @@ void LocalToGlobal(Point* pt);
 #define BitAnd(x, y) (x & y)
 int16_t OpenDeskAcc(ConstStr255Param deskAccName);
 void SetItemMark(MenuHandle theMenu, int16_t item, int16_t markChar);
-void DisposeCCursor(CCrsrHandle cCrsr);
 void SelectWindow(WindowPtr theWindow);
 int16_t CountMItems(MenuHandle theMenu);
 void PaintRect(const Rect* r);
-void ObscureCursor(void);
-OSErr DisposeCIcon(CIconHandle theIcon);
 Boolean SectRect(const Rect* src1, const Rect* src2, Rect* dstRect);
 void FrameOval(const Rect* r);
 int32_t DeltaPoint(Point ptA, Point ptB);
 void FrameRect(const Rect* r);
-void HideCursor(void);
-void ShowCursor(void);
 void GetItemMark(MenuHandle theMenu, int16_t item, int16_t* markChar);
 #define GetMBarHeight() 20
 void LMSetMBarHeight(int16_t h);
@@ -238,7 +230,6 @@ void TEStyleInsert(const void* text, int32_t length, StScrpHandle hSt, TEHandle 
 void TESetAlignment(int16_t just, TEHandle hTE);
 void TEScroll(int16_t dh, int16_t dv, TEHandle hTE);
 int32_t GetResourceSizeOnDisk(Handle theResource);
-void DisposePixPat(PixPatHandle ppat);
 void SFPutFile(Point where, const Str255 prompt, const Str255 origName, Ptr dlgHook, SFReply* reply);
 OSErr GetProcessInformation(const ProcessSerialNumber* PSN, ProcessInfoRecPtr info);
 void InitWindows(void);
