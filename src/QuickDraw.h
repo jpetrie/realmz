@@ -21,6 +21,7 @@ extern "C" {
 #endif // __cplusplus
 
 typedef Handle RgnHandle;
+typedef Handle CCrsrHandle;
 typedef uint32_t GWorldFlags;
 
 typedef struct {
@@ -150,6 +151,7 @@ void InitGraf(QuickDrawGlobals* globalPtr);
 void SetPort(CGrafPtr port);
 void GetPort(GrafPtr* port);
 PixPatHandle GetPixPat(uint16_t patID);
+void DisposePixPat(PixPatHandle ppat);
 PicHandle GetPicture(int16_t picID);
 void ForeColor(int32_t color);
 void GetBackColor(RGBColor* color);
@@ -163,6 +165,7 @@ void TextFace(int16_t face);
 void RGBBackColor(const RGBColor* color);
 void RGBForeColor(const RGBColor* color);
 CIconHandle GetCIcon(uint16_t iconID);
+OSErr DisposeCIcon(CIconHandle handle);
 OSErr PlotCIcon(const Rect* theRect, CIconHandle theIcon);
 void BackPixPat(PixPatHandle ppat);
 void MoveTo(int16_t h, int16_t v);
@@ -184,6 +187,13 @@ void CopyBits(const BitMap* srcBits, const BitMap* dstBits, const Rect* srcRect,
 void CopyMask(const BitMap* srcBits, const BitMap* maskBits, const BitMap* dstBits, const Rect* srcRect, const Rect* maskRect,
     const Rect* dstRect);
 void EraseRect(const Rect* r);
+
+CCrsrHandle GetCCursor(uint16_t crsrID);
+void SetCCursor(CCrsrHandle cCrsr);
+void DisposeCCursor(CCrsrHandle cCrsr);
+void ObscureCursor(void);
+void HideCursor(void);
+void ShowCursor(void);
 
 #ifdef __cplusplus
 } // extern "C"

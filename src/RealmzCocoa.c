@@ -57,10 +57,6 @@ OSErr FadeToGamma(GammaRef to, UInt16 numSteps, FadeType typeOfFade) {
   return 0;
 }
 
-CCrsrHandle GetCCursor(uint16_t crsrID) {
-  return NULL;
-}
-
 OSErr GetDefaultOutputVolume(uint32_t* level) {
   return 0;
 }
@@ -151,9 +147,6 @@ int16_t OpenDeskAcc(ConstStr255Param deskAccName) {
 void SetItemMark(MenuHandle theMenu, int16_t item, int16_t markChar) {
 }
 
-void DisposeCCursor(CCrsrHandle cCrsr) {
-}
-
 void SelectWindow(WindowPtr theWindow) {
 }
 
@@ -177,9 +170,6 @@ void OffsetRect(Rect* r, uint16_t dh, uint16_t dv) {
   r->right += dh;
   r->top += dv;
   r->bottom += dv;
-}
-
-void SetCCursor(CCrsrHandle cCrsr) {
 }
 
 OSErr SetDefaultOutputVolume(uint32_t level) {
@@ -214,13 +204,6 @@ void UnlockPixels(PixMapHandle pm) {
 }
 
 void PaintRect(const Rect* r) {
-}
-
-void ObscureCursor(void) {
-}
-
-OSErr DisposeCIcon(CIconHandle theIcon) {
-  return 0;
 }
 
 Boolean SectRect(const Rect* src1, const Rect* src2, Rect* dstRect) {
@@ -276,20 +259,11 @@ void TESetAlignment(int16_t just, TEHandle hTE) {
 void TEScroll(int16_t dh, int16_t dv, TEHandle hTE) {
 }
 
-void DisposePixPat(PixPatHandle ppat) {
-}
-
 void SFPutFile(Point where, const Str255 prompt, const Str255 origName, Ptr dlgHook, SFReply* reply) {
 }
 
 OSErr GetProcessInformation(const ProcessSerialNumber* PSN, ProcessInfoRecPtr info) {
   return 0;
-}
-
-void HideCursor(void) {
-}
-
-void ShowCursor(void) {
 }
 
 void TEDelete(TEHandle hTE) {

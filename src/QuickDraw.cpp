@@ -174,6 +174,13 @@ PixPatHandle GetPixPat(uint16_t patID) {
   return ret_handle;
 }
 
+void DisposePixPat(PixPatHandle ppat) {
+  if ((*ppat)->patData) {
+    DisposeHandle((*ppat)->patData);
+  }
+  DisposeHandleTyped(ppat);
+}
+
 PicHandle GetPicture(int16_t id) {
   // The GetPicture Mac Classic syscall must return a Handle to a decoded Picture resource,
   // but it must also be the same Handle we use to index loaded Resources in the ResourceManager.
@@ -289,6 +296,14 @@ CIconHandle GetCIcon(uint16_t iconID) {
       static_cast<int16_t>(decoded_cicn.image.get_width())};
   (*h)->iconData = NewHandleWithData(decoded_cicn.image.get_data(), decoded_cicn.image.get_data_size());
   return h;
+}
+
+OSErr DisposeCIcon(CIconHandle icon) {
+  if ((*icon)->iconData) {
+    DisposeHandle((*icon)->iconData);
+  }
+  DisposeHandleTyped(icon);
+  return noErr;
 }
 
 OSErr PlotCIcon(const Rect* theRect, CIconHandle theIcon) {
@@ -415,4 +430,88 @@ void CopyMask(const BitMap* srcBits, const BitMap* maskBits, const BitMap* dstBi
 void EraseRect(const Rect* r) {
   current_canvas()->clear_rect(*r);
   render_window(qd.thePort);
+}
+
+// Cursor functions
+
+struct ColorCursor {
+  // Opaque (to the caller) structure representing a loaded cursor.
+  bool is_orphaned = false;
+  int16_t resource_id;
+  std::shared_ptr<ResourceDASM::ResourceFile::DecodedColorCursorResource> decoded;
+  sdl_surface_ptr sdl_surface;
+  sdl_cursor_ptr sdl_cursor;
+};
+
+static ColorCursor** current_cursor_handle = nullptr;
+static ssize_t cursor_hide_level = 0;
+
+CCrsrHandle GetCCursor(uint16_t resource_id) {
+  ColorCursor cursor;
+  cursor.resource_id = resource_id;
+
+  auto data_handle = GetResource(ResourceDASM::RESOURCE_TYPE_crsr, resource_id);
+  cursor.decoded = std::make_shared<ResourceDASM::ResourceFile::DecodedColorCursorResource>(
+      ResourceDASM::ResourceFile::decode_crsr(*data_handle, GetHandleSize(data_handle)));
+
+  cursor.sdl_surface = sdl_make_unique(SDL_CreateSurfaceFrom(
+      cursor.decoded->image.get_width(),
+      cursor.decoded->image.get_height(),
+      SDL_PIXELFORMAT_RGBA32,
+      const_cast<void*>(cursor.decoded->image.get_data()),
+      4 * cursor.decoded->image.get_width()));
+
+  cursor.sdl_cursor = sdl_make_unique(SDL_CreateColorCursor(
+      cursor.sdl_surface.get(), cursor.decoded->hotspot_x, cursor.decoded->hotspot_y));
+
+  ColorCursor** ret = NewHandleTyped<ColorCursor>(std::move(cursor));
+  return reinterpret_cast<Handle>(ret);
+}
+
+void DisposeCCursor(CCrsrHandle handle) {
+  ColorCursor** cursor = reinterpret_cast<ColorCursor**>(handle);
+  if (current_cursor_handle == cursor) {
+    // Can't free this cursor yet because it's in use, but Realmz thinks it's
+    // freed, so mark it for later freeing when the cursor is next changed
+    (*cursor)->is_orphaned = true;
+  } else {
+    DisposeHandleTyped(cursor);
+  }
+}
+
+void SetCCursor(CCrsrHandle handle) {
+  ColorCursor** cursor = reinterpret_cast<ColorCursor**>(handle);
+  if (current_cursor_handle == cursor) {
+    return;
+  }
+  if (current_cursor_handle && (*current_cursor_handle)->is_orphaned) {
+    DisposeHandleTyped(current_cursor_handle);
+  }
+  current_cursor_handle = cursor;
+
+  SDL_SetCursor((*cursor)->sdl_cursor.get());
+}
+
+void ObscureCursor(void) {
+  // TODO: It doesn't appear that SDL has an easy equivalent of this; we would
+  // probably have to call SDL_HideCursor, save some kind of flag on the
+  // current cursor, then call SDL_ShowCursor again when we receive any mouse
+  // movement event. But QuickDraw doesn't know about the Event Manager (and it
+  // should stay that way if possible), so we don't implement this currently.
+  // The lack of this implementation probably won't affect the gameplay
+  // experience much.
+}
+
+void HideCursor(void) {
+  if (cursor_hide_level == 0) {
+    SDL_HideCursor();
+  }
+  cursor_hide_level++;
+}
+
+void ShowCursor(void) {
+  cursor_hide_level--;
+  if (cursor_hide_level == 0) {
+    SDL_ShowCursor();
+  }
 }

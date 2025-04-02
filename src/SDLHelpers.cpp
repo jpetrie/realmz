@@ -8,6 +8,10 @@ sdl_texture_ptr sdl_make_unique(SDL_Texture* t) {
   return sdl_texture_ptr(t);
 }
 
+sdl_cursor_ptr sdl_make_unique(SDL_Cursor* c) {
+  return sdl_cursor_ptr(c);
+}
+
 sdl_renderer_ptr sdl_make_unique(SDL_Renderer* r) {
   return sdl_renderer_ptr(r);
 }
