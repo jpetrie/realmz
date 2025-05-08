@@ -568,15 +568,15 @@ public:
     return this->dirty;
   }
 
-  bool move_control(short h, short v) {
+  bool move_control(short horizontal, short vertical) {
     if (this->control) {
       Rect& bounds = this->control->bounds;
-      int32_t w = bounds.right - bounds.left;
-      int32_t h = bounds.bottom - bounds.top;
-      bounds.left = h;
-      bounds.top = v;
-      bounds.right = bounds.left + w;
-      bounds.bottom = bounds.top + h;
+      int32_t width = bounds.right - bounds.left;
+      int32_t height = bounds.bottom - bounds.top;
+      bounds.left = horizontal;
+      bounds.top = vertical;
+      bounds.right = bounds.left + width;
+      bounds.bottom = bounds.top + height;
       this->rect = bounds;
       this->dirty = true;
     }
@@ -1549,6 +1549,9 @@ void HideControl(ControlHandle handle) {
 }
 
 void GetControlBounds(ControlHandle handle, Rect* rect) {
+  if (!handle) {
+    return;
+  }
   auto item = DialogItem::get_item_by_handle(unwrap_opaque_handle(handle));
   if (item->control) {
     *rect = item->control->bounds;
