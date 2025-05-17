@@ -447,7 +447,7 @@ void GraphicsCanvas::draw_oval(const Rect& dispRect) {
   int c = sqrt(a * a - b * b);
 
   // Calculate ellipse pixels in coordinates that are relative to the center,
-  // then translate to actual center when drawing. Start at (a, 0), first quadrant
+  // then translate to actual center when drawing. Start at (x, 0), first quadrant
 
   // Foci
   // if (vertical) {
@@ -481,27 +481,28 @@ void GraphicsCanvas::draw_oval(const Rect& dispRect) {
       dy_f2 = y;
     }
 
-    y++;
     dy_f1++;
     dy_f2++;
 
     if (sqrt(dx_f1 * dx_f1 + dy_f1 * dy_f1) + sqrt((dx_f2 * dx_f2 + dy_f2 * dy_f2)) < 2 * a) {
+      y++;
       continue;
     }
 
-    x--;
     dx_f1--;
     dx_f2--;
 
     if (sqrt(dx_f1 * dx_f1 + dy_f1 * dy_f1) + sqrt((dx_f2 * dx_f2 + dy_f2 * dy_f2)) < 2 * a) {
+      y++;
+      x--;
       continue;
     }
 
-    y--;
     dy_f1--;
     dy_f2--;
 
     if (sqrt(dx_f1 * dx_f1 + dy_f1 * dy_f1) + sqrt((dx_f2 * dx_f2 + dy_f2 * dy_f2)) < 2 * a) {
+      x--;
       continue;
     }
   }
