@@ -419,6 +419,106 @@ void GraphicsCanvas::draw_rect(const Rect& dispRect) {
   end_draw();
 }
 
+// Derived from https://en.wikipedia.org/wiki/Ellipse#In_Cartesian_coordinates and
+// https://en.wikipedia.org/wiki/Midpoint_circle_algorithm
+void GraphicsCanvas::draw_oval(const Rect& dispRect) {
+  auto renderer = start_draw();
+
+  // Compute semi-major and semi-minor axes, center coordinates, and focus
+  // distance from center
+  auto a = (dispRect.right - dispRect.left) / 2.0;
+  auto b = (dispRect.bottom - dispRect.top) / 2.0;
+  int x0{}, y0{}, x{};
+  int y = 0;
+  bool vertical{false};
+
+  if (a < b) {
+    std::swap(a, b);
+    x0 = dispRect.right - b;
+    y0 = dispRect.bottom - a;
+    x = b;
+    vertical = true;
+  } else {
+    x0 = dispRect.right - a;
+    y0 = dispRect.bottom - b;
+    x = a;
+  }
+
+  int c = sqrt(a * a - b * b);
+
+  // Calculate ellipse pixels in coordinates that are relative to the center,
+  // then translate to actual center when drawing. Start at (x, 0), first quadrant
+
+  // Foci
+  // if (vertical) {
+  //   SDL_RenderPoint(renderer, x0, y0 + c);
+  //   SDL_RenderPoint(renderer, x0, y0 - c);
+  // } else {
+  //   SDL_RenderPoint(renderer, x0 + c, y0);
+  //   SDL_RenderPoint(renderer, x0 - c, y0);
+  // }
+
+  int dx_f1{}, dx_f2{}, dy_f1{}, dy_f2{};
+  while (x > 0) {
+    // Mirror the pixel to quadrants 2, 3, and 4
+    SDL_RenderPoint(renderer, x0 + x, y0 + y);
+    SDL_RenderPoint(renderer, x0 + x, y0 - y);
+    SDL_RenderPoint(renderer, x0 - x, y0 + y);
+    SDL_RenderPoint(renderer, x0 - x, y0 - y);
+
+    // Search next point to draw, starting with y+1, then y+1 and x-1, then
+    // just x-1. The first one that is inside the bounds of the ellipse is our
+    // next pixel to draw
+    if (vertical) {
+      dx_f1 = x;
+      dx_f2 = x;
+      dy_f1 = y - c;
+      dy_f2 = y + c;
+    } else {
+      dx_f1 = x - c;
+      dx_f2 = x + c;
+      dy_f1 = y;
+      dy_f2 = y;
+    }
+
+    dy_f1++;
+    dy_f2++;
+
+    if (sqrt(dx_f1 * dx_f1 + dy_f1 * dy_f1) + sqrt((dx_f2 * dx_f2 + dy_f2 * dy_f2)) < 2 * a) {
+      y++;
+      continue;
+    }
+
+    dx_f1--;
+    dx_f2--;
+
+    if (sqrt(dx_f1 * dx_f1 + dy_f1 * dy_f1) + sqrt((dx_f2 * dx_f2 + dy_f2 * dy_f2)) < 2 * a) {
+      y++;
+      x--;
+      continue;
+    }
+
+    dy_f1--;
+    dy_f2--;
+
+    if (sqrt(dx_f1 * dx_f1 + dy_f1 * dy_f1) + sqrt((dx_f2 * dx_f2 + dy_f2 * dy_f2)) < 2 * a) {
+      x--;
+      continue;
+    }
+  }
+
+  // Draw one final pixel at (0, [a|b]) and (0, [-a|-b])
+  if (vertical) {
+    SDL_RenderPoint(renderer, x0, y0 + a);
+    SDL_RenderPoint(renderer, x0, y0 - a);
+  } else {
+    SDL_RenderPoint(renderer, x0, y0 + b);
+    SDL_RenderPoint(renderer, x0, y0 - b);
+  }
+
+  end_draw();
+}
+
 void GraphicsCanvas::draw_line(const Point& start, const Point& end) {
   auto renderer = start_draw();
   SDL_RenderLine(
