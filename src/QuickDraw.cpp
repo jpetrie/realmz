@@ -596,6 +596,7 @@ void ForeColor(int32_t color) {
 void BackColor(int32_t color) {
   qd.thePort->bgColor = color;
   qd.thePort->rgbBgColor = color_const_to_rgb(color);
+  qd.thePort->bkPixPat = nullptr;
 }
 
 void GetBackColor(RGBColor* color) {
@@ -821,7 +822,11 @@ void ScrollRect(const Rect* r, int16_t dh, int16_t dv, RgnHandle updateRgn) {
   if (!port) {
     throw std::logic_error("qd.thePort is not a CCGrafPort");
   }
-  port->copy_from(*port, src_rect, dst_rect);
+
+  if ((src_rect.top < src_rect.bottom) && (src_rect.left < src_rect.right) &&
+      (dst_rect.top < dst_rect.bottom) && (dst_rect.left < dst_rect.right)) {
+    port->copy_from(*port, src_rect, dst_rect);
+  }
 }
 
 void EraseRect(const Rect* r) {
