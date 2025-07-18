@@ -128,16 +128,12 @@ void CCGrafPort::clear_rect(const Rect* rect) {
   }
 }
 
-void CCGrafPort::draw_rgba8888_data(const void* pixels, int w, int h, const Rect& rect) {
+void CCGrafPort::draw_rgba8888_data(const void* pixels, int sw, int sh, const Rect& rect) {
   // It's OK to const_cast pixels here because we only use the image as a source
-  auto src = phosg::ImageRGBA8888N::from_data_reference(const_cast<void*>(pixels), w, h);
+  auto src = phosg::ImageRGBA8888N::from_data_reference(const_cast<void*>(pixels), sw, sh);
   ssize_t dw = rect.right - rect.left;
   ssize_t dh = rect.bottom - rect.top;
-  if (w == dw && h == dh) {
-    this->data.copy_from_with_blend(src, rect.left, rect.top, w, h, 0, 0);
-  } else {
-    this->data.copy_from_with_resize(src, rect.left, rect.top, dw, dh, 0, 0, w, h);
-  }
+  this->data.copy_from_with_blend(src, rect.left, rect.top, dw, dh, 0, 0, sw, sh);
 }
 
 void CCGrafPort::draw_decoded_pict_from_handle(PicHandle pict, const Rect& rect) {
@@ -452,8 +448,7 @@ void CCGrafPort::copy_from(const CCGrafPort& src, const Rect& src_rect, const Re
   // Macintosh: QuickDraw, 3-115
   switch (mode) {
     case 0x00: // srcCopy
-      this->data.copy_from_with_resize(
-          src.data, dst_rect.left, dst_rect.top, dst_w, dst_h, src_rect.left, src_rect.top, src_w, src_h);
+      this->data.copy_from(src.data, dst_rect.left, dst_rect.top, dst_w, dst_h, src_rect.left, src_rect.top, src_w, src_h);
       break;
     case 0x24: { // transparent
       if (src_w != dst_w || src_h != dst_h) {
