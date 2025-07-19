@@ -239,8 +239,6 @@ void CCGrafPort::draw_text(const std::string& text) {
   auto font = load_font(this->txFont);
   int width = -1;
   if (std::holds_alternative<TTF_Font*>(font)) {
-    this->log.debug_f("draw_text(\"{}\") font={} (TTF) size={} style={}",
-        processed_text, this->txFont, this->txSize, this->txFace);
     auto tt_font = std::get<TTF_Font*>(font);
     TTF_SetFontSize(tt_font, this->txSize);
     set_font_style(tt_font, this->txFace);
@@ -249,6 +247,8 @@ void CCGrafPort::draw_text(const std::string& text) {
     // the left. So, we need to account for this in our display rect.
     // Descent is a negative number, representing the pixels below the baseline the text may extend.
     auto descent = TTF_GetFontDescent(tt_font);
+    this->log.debug_f("draw_text(\"{}\") font={} (TTF) size={} style={} descent={}",
+        processed_text, this->txFont, this->txSize, this->txFace, descent);
 
     auto [w, h] = pixel_dimensions_for_text(tt_font, processed_text);
     Rect r{
@@ -259,21 +259,23 @@ void CCGrafPort::draw_text(const std::string& text) {
     width = this->draw_text_ttf(tt_font, processed_text, r) ? w : -1;
 
   } else if (std::holds_alternative<ResourceDASM::BitmapFontRenderer>(font)) {
-    this->log.debug_f("draw_text(\"{}\") font={} (bitmap) size={} style={}",
-        processed_text, this->txFont, this->txSize, this->txFace);
 
-    // Unlike the TTF case, BitmapFontRenderer takes the full text rectangle, and text is anchored
-    // to the top instead of the baseline. The renderer doesn't overwrite any pixels except those
-    // that are part of each glyph, so we can render directly to data here.
+    // Like the TTF case, we need to account for the text being anchored at the baseline instead
+    // of the upper-left corner. The renderer doesn't overwrite any pixels except those that are
+    // part of each glyph, so we can render directly to data here.
     auto& bm_font = std::get<ResourceDASM::BitmapFontRenderer>(font);
+    auto font = bm_font.get_font();
+    ssize_t descent = font->max_ascent;
+    this->log.debug_f("draw_text(\"{}\") font={} (bitmap) size={} style={} descent={}",
+        processed_text, this->txFont, this->txSize, this->txFace, descent);
     auto [text_width, text_height] = bm_font.pixel_dimensions_for_text(processed_text);
     bm_font.render_text(
         this->data,
         text,
         this->pnLoc.h,
-        this->pnLoc.v,
+        this->pnLoc.v - descent,
         this->pnLoc.h + text_width,
-        this->pnLoc.v + text_height,
+        this->pnLoc.v + text_height - descent,
         rgba8888_for_rgb_color(this->rgbFgColor));
     width = text_width;
   }
