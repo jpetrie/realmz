@@ -26,8 +26,10 @@
 
 using ResourceDASM::ResourceFile;
 
-// Enable this to save an image named debug*.bmp every time the window is recomposited
+// Enable these to save an image named debug*.bmp every time the main window or dialog items are recomposited
 static constexpr bool ENABLE_RECOMPOSITE_DEBUG = false;
+static constexpr bool ENABLE_DIALOG_RECOMPOSITE_DEBUG = false;
+static size_t debug_number = 1;
 
 inline size_t unwrap_opaque_handle(Handle h) {
   static_assert(sizeof(size_t) == sizeof(Handle));
@@ -76,6 +78,32 @@ static int16_t macos_dialog_item_type_for_resource_dasm_type(DialogItemType type
       return 64;
     case DialogItemType::CUSTOM:
       return 0;
+    default:
+      throw std::logic_error("Unknown dialog item type");
+  }
+}
+
+template <>
+const char* phosg::name_for_enum<DialogItemType>(DialogItemType type) {
+  switch (type) {
+    case DialogItemType::BUTTON:
+      return "BUTTON";
+    case DialogItemType::CHECKBOX:
+      return "CHECKBOX";
+    case DialogItemType::RADIO_BUTTON:
+      return "RADIO_BUTTON";
+    case DialogItemType::RESOURCE_CONTROL:
+      return "RESOURCE_CONTROL";
+    case DialogItemType::TEXT:
+      return "TEXT";
+    case DialogItemType::EDIT_TEXT:
+      return "EDIT_TEXT";
+    case DialogItemType::ICON:
+      return "ICON";
+    case DialogItemType::PICTURE:
+      return "PICTURE";
+    case DialogItemType::CUSTOM:
+      return "CUSTOM";
     default:
       throw std::logic_error("Unknown dialog item type");
   }
@@ -396,12 +424,15 @@ public:
         text_str.c_str());
   }
 
-  void render_in_port(CCGrafPort& port) const {
+  void erase_background_in_port(CCGrafPort& port) const {
     if (port.bkPixPat) {
       port.draw_background_ppat(this->rect);
     } else {
       port.clear_rect(&this->rect);
     }
+  }
+
+  void render_in_port(CCGrafPort& port) const {
     switch (type) {
       case ResourceFile::DecodedDialogItem::Type::PICTURE: {
         auto pict_handle = GetPicture(resource_id);
@@ -467,6 +498,19 @@ public:
         break;
       default:
         break;
+    }
+
+    if (ENABLE_DIALOG_RECOMPOSITE_DEBUG) {
+      static size_t last_debug_number = 0;
+      static size_t dialog_debug_number = 1;
+      if (last_debug_number != debug_number) {
+        last_debug_number = debug_number;
+        dialog_debug_number = 1;
+      }
+      wm_log.info_f("Writing debug{}-dialog{}.bmp for item {} ({} @ {{x1={}, y1={}, x2={}, y2={}}})",
+          debug_number, dialog_debug_number, this->item_id, phosg::name_for_enum(this->type),
+          this->rect.left, this->rect.top, this->rect.right, this->rect.bottom);
+      phosg::save_file(std::format("debug{}-dialog{}.bmp", debug_number, dialog_debug_number++), port.data.serialize(phosg::ImageFormat::WINDOWS_BITMAP));
     }
   }
 
@@ -1044,7 +1088,6 @@ void WindowManager::recomposite(std::shared_ptr<Window> updated_window) {
       auto w = this->sdl_window_data.get_width();
       auto h = this->sdl_window_data.get_height();
       if (ENABLE_RECOMPOSITE_DEBUG) {
-        static size_t debug_number = 1;
         wm_log.info_f("Writing debug{}.bmp", debug_number);
         phosg::save_file(std::format("debug{}.bmp", debug_number++), this->sdl_window_data.serialize(phosg::ImageFormat::WINDOWS_BITMAP));
       }
@@ -1259,6 +1302,7 @@ void SetDialogItemText(DialogItemHandle item_handle, ConstStr255Param text) {
 
   auto window = item->owner_window.lock();
   if (window) {
+    item->erase_background_in_port(window->get_port());
     item->render_in_port(window->get_port());
     WindowManager::instance().recomposite_from_window(window);
   } else {
