@@ -366,8 +366,7 @@ protected:
 
     // Debugging features: the backslash key switches all windows to partially-transparent to debug compositing issues
     if ((ev.what == keyDown) && ((ev.message & 0xFF) == static_cast<uint8_t>('\\'))) {
-      enable_translucent_window_debug = !enable_translucent_window_debug;
-      WindowManager::instance().recomposite_all();
+      WindowManager::instance().on_debug_signal();
     }
   }
 

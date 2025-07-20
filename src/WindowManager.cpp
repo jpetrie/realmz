@@ -27,8 +27,8 @@
 using ResourceDASM::ResourceFile;
 
 // Enable these to save an image named debug*.bmp every time the main window or dialog items are recomposited
-static constexpr bool ENABLE_RECOMPOSITE_DEBUG = true;
-static constexpr bool ENABLE_DIALOG_RECOMPOSITE_DEBUG = true;
+static constexpr bool ENABLE_RECOMPOSITE_DEBUG = false;
+static constexpr bool ENABLE_DIALOG_RECOMPOSITE_DEBUG = false;
 bool enable_translucent_window_debug = false;
 static size_t debug_number = 1;
 
@@ -912,12 +912,11 @@ WindowPtr WindowManager::create_window(
 }
 
 void WindowManager::destroy_window(WindowPtr port) {
-  wm_log.debug_f("WindowManager::destroy_window({})", reinterpret_cast<void*>(port));
-
   auto window_it = port_to_window.find(port);
   if (window_it == port_to_window.end()) {
     throw std::logic_error("Attempted to delete nonexistent window");
   }
+  wm_log.debug_f("WindowManager::destroy_window({}) port={}", window_it->second->ref(), window_it->second->port.ref());
 
   // When the window is dismissed via a mousedown, the enqueued mouseup event is either
   // lost when the window is destroyed, or the button is not released in time for it to be
@@ -959,38 +958,41 @@ std::shared_ptr<Window> WindowManager::front_window() {
   return this->top_window;
 }
 
-void WindowManager::link_window_at_front(std::shared_ptr<Window> window) {
-  window->window_below = this->top_window;
+void WindowManager::link_window_at_front(std::shared_ptr<Window> w) {
+  w->window_below = this->top_window;
   if (this->top_window) {
-    this->top_window->window_above = window;
+    this->top_window->window_above = w;
   }
-  this->top_window = window;
+  this->top_window = w;
   if (!this->bottom_window) {
-    this->bottom_window = window;
+    this->bottom_window = w;
   }
+  this->verify_window_stack();
 }
 
-void WindowManager::unlink_window(std::shared_ptr<Window> window) {
-  if (this->top_window == window) {
-    this->top_window = window->window_below;
+void WindowManager::unlink_window(std::shared_ptr<Window> w) {
+  if (this->top_window == w) {
+    this->top_window = w->window_below;
   }
-  if (this->bottom_window == window) {
-    this->bottom_window = window->window_above;
+  if (this->bottom_window == w) {
+    this->bottom_window = w->window_above;
   }
-  if (window->window_below) {
-    window->window_below->window_above = window->window_above;
-    window->window_below.reset();
+  if (w->window_below) {
+    w->window_below->window_above = w->window_above;
   }
-  if (window->window_above) {
-    window->window_above->window_below = window->window_below;
-    window->window_above.reset();
+  if (w->window_above) {
+    w->window_above->window_below = w->window_below;
   }
+  w->window_below.reset();
+  w->window_above.reset();
+  this->verify_window_stack();
 }
 
 void WindowManager::bring_to_front(std::shared_ptr<Window> window) {
-  wm_log.debug_f("WindowManager::bring_to_front({})", reinterpret_cast<void*>(window.get()));
-
-  if (window != this->top_window) {
+  if (window == this->top_window) {
+    wm_log.debug_f("WindowManager::bring_to_front({}) port={} (already at front)", window->ref(), window->port.ref());
+  } else {
+    wm_log.debug_f("WindowManager::bring_to_front({}) port={} (not already at front)", window->ref(), window->port.ref());
     this->unlink_window(window);
     this->link_window_at_front(window);
     this->on_dialog_item_focus_changed();
@@ -1145,6 +1147,62 @@ void WindowManager::recomposite_from_window(std::shared_ptr<Window> updated_wind
 }
 void WindowManager::recomposite_all() {
   this->recomposite(nullptr);
+}
+
+void WindowManager::on_debug_signal() {
+  this->print_window_stack();
+  enable_translucent_window_debug = !enable_translucent_window_debug;
+  this->recomposite_all();
+}
+
+void WindowManager::print_window_stack() const {
+  wm_log.debug_f("Window list: top={} bottom={}",
+      this->top_window ? this->top_window->ref() : "(null)",
+      this->bottom_window ? this->bottom_window->ref() : "(null)");
+  wm_log.debug_f("Window stack (top window first):");
+  for (auto w = this->top_window; w; w = w->window_below) {
+    wm_log.debug_f("  {} port={} {{x1={}, y1={}, x2={}, y2={}}} \"{}\" visible={} dialog={} ({} dialog items) above={} below={}",
+        w->ref(), w->port.ref(),
+        w->port.portRect.left, w->port.portRect.top, w->port.portRect.right, w->port.portRect.bottom,
+        w->title, w->visible ? "true" : "false", w->is_dialog_flag ? "true" : "false", w->dialog_items.size(),
+        w->window_above ? w->window_above->ref() : "(null)", w->window_below ? w->window_below->ref() : "(null)");
+  }
+}
+
+void WindowManager::verify_window_stack() const {
+  if (!this->top_window && !this->bottom_window) {
+    return; // Window stack is empty; nothing to check
+  }
+  if (this->top_window && !this->bottom_window) {
+    throw std::logic_error("There is a top window but no bottom window");
+  }
+  if (!this->top_window && this->bottom_window) {
+    throw std::logic_error("There is a bottom window but no top window");
+  }
+  if (this->top_window->window_above) {
+    throw std::logic_error("Top window has a window above it");
+  }
+  if (this->bottom_window->window_below) {
+    throw std::logic_error("Bottom window has a window below it");
+  }
+  for (auto w = this->top_window; w; w = w->window_below) {
+    if (w->window_below) {
+      if (w->window_below->window_above != w) {
+        throw std::logic_error("Incorrect backlink in window stack (top->bottom)");
+      }
+    } else if (this->bottom_window != w) {
+      throw std::logic_error("Bottom window reference is incorrect");
+    }
+  }
+  for (auto w = this->bottom_window; w; w = w->window_above) {
+    if (w->window_above) {
+      if (w->window_above->window_below != w) {
+        throw std::logic_error("Incorrect backlink in window stack (bottom->top)");
+      }
+    } else if (this->top_window != w) {
+      throw std::logic_error("Top window reference is incorrect");
+    }
+  }
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -1636,11 +1694,11 @@ void SizeControl(ControlHandle handle, short w, short h) {
 }
 
 void DrawControls(WindowPtr port) {
-  wm_log.debug_f("DrawControls({})", reinterpret_cast<void*>(port));
 
   // TODO: Does this suffice? Do we need to also set the dirty flag for all
   // controls or something like that?
   auto window = WindowManager::instance().window_for_port(port);
+  wm_log.debug_f("DrawControls({})", window->ref());
   // TODO: Should we draw all items, or only controls?
   for (const auto& item : window->get_dialog_items()) {
     if (item->control) {

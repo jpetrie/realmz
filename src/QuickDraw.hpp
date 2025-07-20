@@ -60,6 +60,10 @@ public:
   void draw_background_ppat(const Rect& rect); // EraseRect
   void copy_from(const CCGrafPort& src, const Rect& srcRect, const Rect& dstRect, int16_t mode);
 
+  inline std::string ref() const {
+    return std::format("P-{:016X}", reinterpret_cast<intptr_t>(this));
+  }
+
 protected:
   bool draw_text_ttf(TTF_Font* font, const std::string& processed_text, const Rect& rect);
   bool draw_text_bitmap(const ResourceDASM::BitmapFontRenderer& renderer, const std::string& text, const Rect& rect);

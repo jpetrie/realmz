@@ -49,6 +49,10 @@ public:
       std::vector<std::shared_ptr<DialogItem>>&& dialog_items);
   ~Window() = default;
 
+  inline std::string ref() const {
+    return std::format("W-{:016X}", reinterpret_cast<intptr_t>(this));
+  }
+
   inline const Rect& bounds() const {
     return this->port.portRect;
   }
@@ -125,6 +129,10 @@ public:
   void recomposite_from_window(CCGrafPort& updated_port);
   void recomposite_from_window(std::shared_ptr<Window> updated_window);
   void recomposite_all();
-};
 
-extern bool enable_translucent_window_debug;
+  void on_debug_signal();
+
+private:
+  void print_window_stack() const;
+  void verify_window_stack() const;
+};
