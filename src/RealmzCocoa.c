@@ -130,9 +130,6 @@ int16_t OpenDeskAcc(ConstStr255Param deskAccName) {
 void SetItemMark(MenuHandle theMenu, int16_t item, int16_t markChar) {
 }
 
-void SelectWindow(WindowPtr theWindow) {
-}
-
 void EndUpdate(WindowPtr theWindow) {
 }
 

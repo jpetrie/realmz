@@ -363,6 +363,12 @@ protected:
     if (text && strlen(text)) {
       strcpy(ev.text, text);
     }
+
+    // Debugging features: the backslash key switches all windows to partially-transparent to debug compositing issues
+    if ((ev.what == keyDown) && ((ev.message & 0xFF) == static_cast<uint8_t>('\\'))) {
+      enable_translucent_window_debug = !enable_translucent_window_debug;
+      WindowManager::instance().recomposite_all();
+    }
   }
 
   void enqueue_sdl_event(const SDL_Event& e) {

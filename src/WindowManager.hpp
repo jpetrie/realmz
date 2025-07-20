@@ -126,3 +126,5 @@ public:
   void recomposite_from_window(std::shared_ptr<Window> updated_window);
   void recomposite_all();
 };
+
+extern bool enable_translucent_window_debug;

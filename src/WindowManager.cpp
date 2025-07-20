@@ -27,9 +27,9 @@
 using ResourceDASM::ResourceFile;
 
 // Enable these to save an image named debug*.bmp every time the main window or dialog items are recomposited
-static constexpr bool ENABLE_RECOMPOSITE_DEBUG = false;
-static constexpr bool ENABLE_DIALOG_RECOMPOSITE_DEBUG = false;
-static constexpr bool ENABLE_TRANSLUCENT_WINDOW_DEBUG = false;
+static constexpr bool ENABLE_RECOMPOSITE_DEBUG = true;
+static constexpr bool ENABLE_DIALOG_RECOMPOSITE_DEBUG = true;
+bool enable_translucent_window_debug = false;
 static size_t debug_number = 1;
 
 inline size_t unwrap_opaque_handle(Handle h) {
@@ -1058,7 +1058,7 @@ void WindowManager::recomposite(std::shared_ptr<Window> updated_window) {
   }
 
   std::shared_ptr<Window> window;
-  if (!updated_window || ENABLE_TRANSLUCENT_WINDOW_DEBUG) {
+  if (!updated_window || enable_translucent_window_debug) {
     this->sdl_window_data.clear(0x000000FF);
     window = this->bottom_window;
   } else {
@@ -1072,7 +1072,7 @@ void WindowManager::recomposite(std::shared_ptr<Window> updated_window) {
     this->sdl_window_data.draw_vertical_line(window->port.portRect.left - 1, window->port.portRect.top, window->port.portRect.bottom, 0, 0x000000FF);
     this->sdl_window_data.draw_vertical_line(window->port.portRect.right, window->port.portRect.top, window->port.portRect.bottom, 0, 0x000000FF);
 
-    if (ENABLE_TRANSLUCENT_WINDOW_DEBUG) {
+    if (enable_translucent_window_debug) {
       this->sdl_window_data.copy_from_with_custom(
           window->port.data,
           window->port.portRect.left,
@@ -1737,14 +1737,22 @@ WindowPtr FrontWindow() {
   return window ? &window->get_port() : nullptr;
 }
 
-void BringToFront(WindowPtr theWindow) {
+void BringToFront(WindowPtr w) {
   auto& wm = WindowManager::instance();
-  auto window = wm.window_for_port(theWindow);
+  auto window = wm.window_for_port(w);
   wm.bring_to_front(window);
 }
 
-void DisposeWindow(WindowPtr theWindow) {
-  WindowManager_DisposeWindow(theWindow);
+void SelectWindow(WindowPtr w) {
+  // Apparently SelectWindow moves the focus to the given window and brings it
+  // to the front, but does not show it (ShowWindow is still required for
+  // that). We don't implement focus in our window manager, so all we have to
+  // do here is bring the window to the front.
+  BringToFront(w);
+}
+
+void DisposeWindow(WindowPtr w) {
+  WindowManager_DisposeWindow(w);
 }
 
 TEHandle TENew(const Rect* destRect, const Rect* viewRect) {
