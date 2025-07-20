@@ -29,6 +29,7 @@ using ResourceDASM::ResourceFile;
 // Enable these to save an image named debug*.bmp every time the main window or dialog items are recomposited
 static constexpr bool ENABLE_RECOMPOSITE_DEBUG = false;
 static constexpr bool ENABLE_DIALOG_RECOMPOSITE_DEBUG = false;
+static constexpr bool ENABLE_TRANSLUCENT_WINDOW_DEBUG = false;
 static size_t debug_number = 1;
 
 inline size_t unwrap_opaque_handle(Handle h) {
@@ -1057,7 +1058,7 @@ void WindowManager::recomposite(std::shared_ptr<Window> updated_window) {
   }
 
   std::shared_ptr<Window> window;
-  if (!updated_window) {
+  if (!updated_window || ENABLE_TRANSLUCENT_WINDOW_DEBUG) {
     this->sdl_window_data.clear(0x000000FF);
     window = this->bottom_window;
   } else {
@@ -1071,14 +1072,28 @@ void WindowManager::recomposite(std::shared_ptr<Window> updated_window) {
     this->sdl_window_data.draw_vertical_line(window->port.portRect.left - 1, window->port.portRect.top, window->port.portRect.bottom, 0, 0x000000FF);
     this->sdl_window_data.draw_vertical_line(window->port.portRect.right, window->port.portRect.top, window->port.portRect.bottom, 0, 0x000000FF);
 
-    this->sdl_window_data.copy_from_with_blend(
-        window->port.data,
-        window->port.portRect.left,
-        window->port.portRect.top,
-        window->get_width(),
-        window->get_height(),
-        0,
-        0);
+    if (ENABLE_TRANSLUCENT_WINDOW_DEBUG) {
+      this->sdl_window_data.copy_from_with_custom(
+          window->port.data,
+          window->port.portRect.left,
+          window->port.portRect.top,
+          window->get_width(),
+          window->get_height(),
+          0,
+          0,
+          [](uint32_t dst_c, uint32_t src_c) -> uint32_t {
+            return phosg::alpha_blend(dst_c, phosg::replace_alpha(src_c, 0x80)) | 0x000000FF;
+          });
+    } else {
+      this->sdl_window_data.copy_from_with_blend(
+          window->port.data,
+          window->port.portRect.left,
+          window->port.portRect.top,
+          window->get_width(),
+          window->get_height(),
+          0,
+          0);
+    }
   }
 
   if (this->sdl_window) {

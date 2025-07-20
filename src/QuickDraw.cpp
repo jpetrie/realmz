@@ -503,17 +503,15 @@ void CCGrafPort::copy_from(const CCGrafPort& src, const Rect& src_rect, const Re
 
   // TODO: Implement the rest of these if they become necessary. See Inside
   // Macintosh: QuickDraw, 3-115
-  if ((mode != 0x00) && ((src_w != dst_w) || (src_h != dst_h))) {
-    throw std::runtime_error("Resizing during CopyBits is only supported with the srcCopy transfer mode");
-  }
   switch (mode) {
     case 0x00: // srcCopy
       this->data.copy_from(src.data, dst_rect.left, dst_rect.top, dst_w, dst_h, src_rect.left, src_rect.top, src_w, src_h, phosg::ResizeMode::NEAREST_NEIGHBOR);
       break;
+
     case 0x01: { // srcOr
       uint32_t fg_color = rgba8888_for_rgb_color(this->rgbFgColor);
       this->data.copy_from_with_custom(
-          src.data, dst_rect.left, dst_rect.top, dst_w, dst_h, src_rect.left, src_rect.top,
+          src.data, dst_rect.left, dst_rect.top, dst_w, dst_h, src_rect.left, src_rect.top, src_w, src_h, phosg::ResizeMode::NEAREST_NEIGHBOR,
           [fg_color](uint32_t dst_c, uint32_t src_c) -> uint32_t {
             if (src_c == 0x000000FF) {
               return fg_color;
@@ -536,11 +534,13 @@ void CCGrafPort::copy_from(const CCGrafPort& src, const Rect& src_rect, const Re
           });
       break;
     }
+
     case 0x24: // transparent
       this->data.copy_from_with_source_color_mask(
-          src.data, dst_rect.left, dst_rect.top, dst_w, dst_h, src_rect.left, src_rect.top,
-          rgba8888_for_rgb_color(this->rgbBgColor));
+          src.data, dst_rect.left, dst_rect.top, dst_w, dst_h, src_rect.left, src_rect.top, src_w, src_h,
+          rgba8888_for_rgb_color(this->rgbBgColor), phosg::ResizeMode::NEAREST_NEIGHBOR);
       break;
+
     case 0x02: // srcXor
     case 0x03: // srcBic
     case 0x04: // notSrcCopy
