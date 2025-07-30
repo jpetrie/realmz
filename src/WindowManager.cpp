@@ -50,7 +50,12 @@ inline Rect copy_rect(const ResourceDASM::Rect& src) {
 ////////////////////////////////////////////////////////////////////////////////
 // SDL and rendering helpers
 
-static phosg::PrefixedLogger wm_log("[WindowManager] ", phosg::LogLevel::L_DEBUG); // TODO: Set this back to L_INFO
+#ifdef REALMZ_DEBUG
+constexpr auto default_log_level = phosg::LogLevel::L_DEBUG;
+#else
+constexpr auto default_log_level = phosg::LogLevel::L_INFO;
+#endif
+static phosg::PrefixedLogger wm_log("[WindowManager] ", default_log_level);
 
 static size_t generate_opaque_handle() {
   static size_t next_handle = 1;
@@ -723,7 +728,6 @@ void Window::add_dialog_item(std::shared_ptr<DialogItem> item) {
   this->dialog_items.emplace_back(item);
   item->owner_window = this->weak_from_this();
 
-  // TODO: Should we draw just this item, or re-render the entire window?
   this->log.debug_f("Window::add_dialog_item({})", item->str());
   item->render_in_port(this->port);
   WindowManager::instance().recomposite_from_window(this->shared_from_this());
@@ -937,10 +941,7 @@ void WindowManager::destroy_window(WindowPtr port) {
   // If the current port is this window's port, set the current port back to
   // the default port
   if (qd.thePort == port) {
-    if (!default_port) {
-      default_port = std::make_unique<CCGrafPort>();
-    }
-    SetPort(default_port.get());
+    SetPort(&get_default_port());
   }
 
   // Recomposite everything, since this window many have been obstructing other windows

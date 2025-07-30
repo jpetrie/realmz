@@ -30,7 +30,12 @@
 #include "Types.hpp"
 #include "WindowManager.hpp"
 
-static phosg::PrefixedLogger qd_log("[QuickDraw] ", phosg::LogLevel::L_DEBUG); // TODO: Set this back to L_INFO
+#ifdef REALMZ_DEBUG
+constexpr auto default_log_level = phosg::LogLevel::L_DEBUG;
+#else
+constexpr auto default_log_level = phosg::LogLevel::L_INFO;
+#endif
+static phosg::PrefixedLogger qd_log("[QuickDraw] ", default_log_level);
 
 ///////////////////////////////////////////////////////////////////////////////
 // CCGrafPort implementation
@@ -566,7 +571,14 @@ void CCGrafPort::copy_from(const CCGrafPort& src, const Rect& src_rect, const Re
 // port to PC in place of Classic Mac's global QuickDraw context. We can repurpose it here
 // for easier access in our code, while still exposing a C-compatible struct.
 QuickDrawGlobals qd;
-std::unique_ptr<CCGrafPort> default_port;
+
+CCGrafPort& get_default_port() {
+  static std::unique_ptr<CCGrafPort> default_port;
+  if (!default_port) {
+    default_port = std::make_unique<CCGrafPort>();
+  }
+  return *default_port.get();
+}
 
 Rect rect_from_reader(phosg::StringReader& data) {
   Rect r;
@@ -738,10 +750,7 @@ void SetPort(CGrafPtr port) {
 // its members, there is no need for further initialization beyond updating
 // qd.thePort to point at the default port
 void InitGraf(QuickDrawGlobals*) {
-  if (!default_port) {
-    default_port = std::make_unique<CCGrafPort>();
-  }
-  qd.thePort = default_port.get();
+  qd.thePort = &get_default_port();
 }
 
 CCGrafPort& current_port() {

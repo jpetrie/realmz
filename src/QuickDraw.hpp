@@ -69,7 +69,7 @@ protected:
   bool draw_text_bitmap(const ResourceDASM::BitmapFontRenderer& renderer, const std::string& text, const Rect& rect);
 };
 
-extern std::unique_ptr<CCGrafPort> default_port;
+CCGrafPort& get_default_port();
 
 Rect rect_from_reader(phosg::StringReader& data);
 

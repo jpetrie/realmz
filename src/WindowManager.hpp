@@ -89,6 +89,9 @@ public:
 class WindowManager {
 private:
   std::unordered_map<DialogItemHandle, std::shared_ptr<DialogItem>> dialog_items_by_handle;
+  // TODO(fuzziqersoftware): It'd be nice to get rid of this map and treat Windows similarly to CCGrafPorts. This is
+  // nontrivial because Window inherits from std::enable_shared_from_this, which has a private field and could cause
+  // Window to no longer be standard layout, which would break compatibility with C code.
   std::unordered_map<WindowPtr, std::shared_ptr<Window>> port_to_window;
   std::shared_ptr<Window> top_window;
   std::shared_ptr<Window> bottom_window;
