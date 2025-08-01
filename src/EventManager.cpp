@@ -349,15 +349,7 @@ protected:
     ev.what = what;
     ev.message = message;
     ev.when = TickCount();
-    auto* port = CCGrafPort::as_port(window_port);
-    if (port) {
-      ev.where = Point{
-          .h = static_cast<int16_t>(this->mouse_loc.h - port->portRect.left),
-          .v = static_cast<int16_t>(this->mouse_loc.v - port->portRect.top),
-      };
-    } else {
-      ev.where = this->mouse_loc;
-    }
+    ev.where = this->mouse_loc;
     ev.modifiers = this->modifier_flags;
     ev.window_port = window_port;
     if (text && strlen(text)) {
@@ -507,6 +499,14 @@ Boolean WaitNextEvent(int16_t which_mask, EventRecord* ret, uint32_t sleep, RgnH
 
 void GetMouse(Point* ret) {
   *ret = em.get_mouse_loc();
+
+  // GetMouse isn't actually an Event Manager function... it's a QuickDraw
+  // function! So, unlike the rest of the Event Manager, it returns coordinates
+  // local to the current graphics port.
+  auto port = CCGrafPort::as_port(qd.thePort);
+  if (port) {
+    *ret = port->to_local_space(*ret);
+  }
 }
 
 Boolean Button(void) {

@@ -1507,7 +1507,8 @@ Boolean DialogSelect(const EventRecord* ev, DialogPtr* dialog, short* item_hit) 
   // Handle case (6) described above
   if (ev->what == mouseDown) {
     try {
-      auto item = window->dialog_item_for_position(ev->where, true);
+      auto window_space_pt = window->get_port().to_local_space(ev->where);
+      auto item = window->dialog_item_for_position(window_space_pt, true);
       if (item) {
         *item_hit = item->item_id;
 

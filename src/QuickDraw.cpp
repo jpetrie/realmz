@@ -1051,7 +1051,14 @@ void ErasePortRect() {
   if (!cc_port) {
     throw std::runtime_error("GetPortBounds called with a port that isn't a CCGrafPort");
   }
-  EraseRect(&cc_port->portRect);
+  // EraseRect expects a rect in port-space, not global-space
+  Rect r = {
+      .left = 0,
+      .top = 0,
+      .right = static_cast<int16_t>(cc_port->portRect.right - cc_port->portRect.left),
+      .bottom = static_cast<int16_t>(cc_port->portRect.bottom - cc_port->portRect.top),
+  };
+  EraseRect(&r);
 }
 
 // Cursor functions
@@ -1143,4 +1150,14 @@ void DebugSavePortContents(const CGrafPort* port, const char* filename) {
   if (port) {
     phosg::save_file(filename, cc_port->data.serialize(phosg::ImageFormat::WINDOWS_BITMAP));
   }
+}
+
+void LocalToGlobal(Point* pt) {
+  pt->h += qd.thePort->portRect.left;
+  pt->v += qd.thePort->portRect.top;
+}
+
+void GlobalToLocal(Point* pt) {
+  pt->h -= qd.thePort->portRect.left;
+  pt->v -= qd.thePort->portRect.top;
 }
