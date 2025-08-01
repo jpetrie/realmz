@@ -509,6 +509,10 @@ void GetMouse(Point* ret) {
   }
 }
 
+void GetMouseGlobal(Point* ret) {
+  *ret = em.get_mouse_loc();
+}
+
 Boolean Button(void) {
   return em.is_mouse_button_down();
 }

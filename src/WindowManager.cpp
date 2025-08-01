@@ -1158,16 +1158,27 @@ void WindowManager::on_debug_signal() {
 }
 
 void WindowManager::print_window_stack() const {
+  Point mouse_loc;
+  GetMouseGlobal(&mouse_loc);
+
   wm_log.debug_f("Window list: top={} bottom={}",
       this->top_window ? this->top_window->ref() : "(null)",
       this->bottom_window ? this->bottom_window->ref() : "(null)");
-  wm_log.debug_f("Window stack (top window first):");
+  wm_log.debug_f("Window stack (top window first; items under cursor shown first):");
   for (auto w = this->top_window; w; w = w->window_below) {
     wm_log.debug_f("  {} port={} {{x1={}, y1={}, x2={}, y2={}}} \"{}\" visible={} dialog={} ({} dialog items) above={} below={}",
         w->ref(), w->port.ref(),
         w->port.portRect.left, w->port.portRect.top, w->port.portRect.right, w->port.portRect.bottom,
         w->title, w->visible ? "true" : "false", w->is_dialog_flag ? "true" : "false", w->dialog_items.size(),
         w->window_above ? w->window_above->ref() : "(null)", w->window_below ? w->window_below->ref() : "(null)");
+    if (PtInRect(mouse_loc, &w->port.portRect)) {
+      auto local_mouse_loc = w->get_port().to_local_space(mouse_loc);
+      for (auto item : w->dialog_items) {
+        if (PtInRect(local_mouse_loc, &item->rect)) {
+          wm_log.debug_f("    {}", item->str());
+        }
+      }
+    }
   }
 }
 
@@ -1713,7 +1724,7 @@ void DrawControls(WindowPtr port) {
 short FindControl(Point pt, WindowPtr window, ControlHandle* handle) {
   auto w = WindowManager::instance().window_for_port(window);
   for (const auto& item : w->get_dialog_items()) {
-    if (item->control && PtInRect(pt, &item->control->bounds)) {
+    if (item->control && PtInRect(pt, &item->control->bounds) && item->enabled && item->control->visible) {
       *handle = wrap_opaque_handle(item->opaque_handle);
       switch (item->control->type) {
         case ControlType::BUTTON:
