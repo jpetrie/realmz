@@ -1047,6 +1047,12 @@ void GetPortBounds(CGrafPtr port, Rect* rect) {
 }
 
 void ErasePortRect() {
+  /* TODO(fuzziqersoftware): It seems that disabling this function makes things
+   * work better; for example, the simple encounter dialog box is blank unless
+   * this function does nothing. We should figure out why this is the case;
+   * presumably this function was originally written for a reason and isn't
+   * supposed to do nothing.
+
   auto* cc_port = CCGrafPort::as_port(qd.thePort);
   if (!cc_port) {
     throw std::runtime_error("GetPortBounds called with a port that isn't a CCGrafPort");
@@ -1059,6 +1065,7 @@ void ErasePortRect() {
       .bottom = static_cast<int16_t>(cc_port->portRect.bottom - cc_port->portRect.top),
   };
   EraseRect(&r);
+  */
 }
 
 // Cursor functions

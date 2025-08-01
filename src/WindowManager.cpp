@@ -1598,7 +1598,6 @@ void StringToNum(ConstStr255Param str, int32_t* num) {
 }
 
 void ModalDialog(ModalFilterProcPtr filterProc, short* itemHit) {
-
   // Retrieve the current window to only process events within that window
   CGrafPtr port = qd.thePort;
 
