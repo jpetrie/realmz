@@ -105,12 +105,6 @@ void ExitToShell(void) {
   exit(EXIT_SUCCESS);
 }
 
-void LocalToGlobal(Point* pt) {
-}
-
-void GlobalToLocal(Point* pt) {
-}
-
 int16_t OpenDeskAcc(ConstStr255Param deskAccName) {
   return 0;
 }

@@ -206,6 +206,9 @@ bool CCGrafPort::draw_text_bitmap(const ResourceDASM::BitmapFontRenderer& render
 
 bool CCGrafPort::draw_text(const std::string& text, const Rect& r) {
   std::string processed_text = replace_param_text(text);
+  if (processed_text.empty()) {
+    return true;
+  }
 
   auto font = load_font(this->txFont);
   bool success = false;
@@ -422,6 +425,7 @@ static phosg::ImageRGB888 reference_image_for_ppat(PixPatHandle ppat) {
 }
 
 void CCGrafPort::draw_oval(const Rect& r) {
+  // TODO: We should respect the pen size here
   switch (this->pnMode) {
     case 0x00: { // srcCopy
       uint32_t color = rgba8888_for_rgb_color(this->rgbFgColor);
@@ -451,9 +455,15 @@ void CCGrafPort::draw_oval(const Rect& r) {
 }
 
 void CCGrafPort::draw_line(const Point& start, const Point& end) {
+  // TODO: We should respect the pen size here
   switch (this->pnMode) {
     case 0x00: // srcCopy
       this->data.draw_line(start.h, start.v, end.h, end.v, rgba8888_for_rgb_color(this->rgbFgColor));
+      break;
+    case 0x02: // srcXor
+      this->data.draw_line_custom(start.h, start.v, end.h, end.v, [this](size_t x, size_t y) -> void {
+        this->data.write(x, y, phosg::invert(this->data.read(x, y)));
+      });
       break;
     case 0x08: { // patCopy
       if (!this->pnPixPat) {
@@ -815,22 +825,22 @@ OSErr DisposeCIcon(CIconHandle icon) {
 }
 
 OSErr PlotCIcon(const Rect* r, CIconHandle icon) {
-  qd_log.debug_f("PlotCIcon({{x0={}, y0={}, x1={}, y1={}}}, {:p})", r->left, r->top, r->right, r->bottom, static_cast<void*>(icon));
   auto bounds = (*icon)->iconPMap.bounds;
   int w = bounds.right - bounds.left;
   int h = bounds.bottom - bounds.top;
   auto& port = current_port();
+  port.log.debug_f("PlotCIcon({{x0={}, y0={}, x1={}, y1={}}}, {:p})", r->left, r->top, r->right, r->bottom, static_cast<void*>(icon));
   port.draw_rgba8888_data(*((*icon)->iconData), w, h, *r);
   WindowManager::instance().recomposite_from_window(port);
   return noErr;
 }
 
 OSErr PlotCIconBitmap(const Rect* r, CIconHandle icon) {
-  qd_log.debug_f("PlotCIconBitmap({{x0={}, y0={}, x1={}, y1={}}}, {:p})", r->left, r->top, r->right, r->bottom, static_cast<void*>(icon));
   auto bounds = (*icon)->iconBMap.bounds;
   int w = bounds.right - bounds.left;
   int h = bounds.bottom - bounds.top;
   auto& port = current_port();
+  port.log.debug_f("PlotCIconBitmap({{x0={}, y0={}, x1={}, y1={}}}, {:p})", r->left, r->top, r->right, r->bottom, static_cast<void*>(icon));
   port.draw_ga11_data(*((*icon)->bitmapData), w, h, *r);
   WindowManager::instance().recomposite_from_window(port);
   return noErr;
@@ -892,8 +902,8 @@ void DisposeGWorld(GWorldPtr offscreenWorld) {
 
 void DrawString(ConstStr255Param s) {
   auto str = string_for_pstr<255>(s);
-  qd_log.debug_f("DrawString(\"{}\")", str);
   auto& port = current_port();
+  port.log.debug_f("DrawString(\"{}\")", str);
   port.draw_text(str);
   WindowManager::instance().recomposite_from_window(port);
 }
@@ -907,30 +917,28 @@ int16_t TextWidth(const void* textBuf, int16_t firstByte, int16_t byteCount) {
 }
 
 void DrawPicture(PicHandle pict, const Rect* r) {
-  qd_log.debug_f("DrawPicture({:p}, {{x0={}, y0={}, x1={}, y1={}}})", static_cast<void*>(pict), r->left, r->top, r->right, r->bottom);
-
   auto& port = current_port();
+  port.log.debug_f("DrawPicture({:p}, {{x0={}, y0={}, x1={}, y1={}}})", static_cast<void*>(pict), r->left, r->top, r->right, r->bottom);
   port.draw_decoded_pict_from_handle(pict, *r);
   WindowManager::instance().recomposite_from_window(port);
 }
 
 void LineTo(int16_t h, int16_t v) {
-  qd_log.debug_f("LineTo({}, {})", h, v);
   auto& port = current_port();
+  port.log.debug_f("LineTo({}, {})", h, v);
   port.draw_line_to(Point{.v = v, .h = h});
   WindowManager::instance().recomposite_from_window(port);
 }
 
 void FrameOval(const Rect* r) {
   auto& port = current_port();
-  qd_log.debug_f("FrameOval({{x0={}, y0={}, x1={}, y1={}}}) mode={:04X} fg={:08X}",
+  port.log.debug_f("FrameOval({{x0={}, y0={}, x1={}, y1={}}}) mode={:04X} fg={:08X}",
       r->left, r->top, r->right, r->bottom, port.pnMode, rgba8888_for_rgb_color(port.rgbFgColor));
   port.draw_oval(*r);
   WindowManager::instance().recomposite_from_window(port);
 }
 
 void CopyBits(const BitMap* src, BitMap* dst, const Rect* src_r, const Rect* dst_r, int16_t mode, RgnHandle maskRgn) {
-  qd_log.debug_f("CopyBits({:p}, {:p}, {{x0={}, y0={}, x1={}, y1={}}}, {{x0={}, y0={}, x1={}, y1={}}}, {:04X}, {:p})", static_cast<const void*>(src), static_cast<void*>(dst), src_r->left, src_r->top, src_r->right, src_r->bottom, dst_r->left, dst_r->top, dst_r->right, dst_r->bottom, mode, static_cast<void*>(maskRgn));
   auto* src_port = CCGrafPort::as_port(src);
   auto* dst_port = CCGrafPort::as_port(dst);
   if (!src_port) {
@@ -940,16 +948,12 @@ void CopyBits(const BitMap* src, BitMap* dst, const Rect* src_r, const Rect* dst
     throw std::runtime_error("CopyBits called with a dst that isn't a CCGrafPort");
   }
 
+  dst_port->log.debug_f("CopyBits({}, {}, {{x0={}, y0={}, x1={}, y1={}}}, {{x0={}, y0={}, x1={}, y1={}}}, {:04X}, {:p})", src_port->ref(), dst_port->ref(), src_r->left, src_r->top, src_r->right, src_r->bottom, dst_r->left, dst_r->top, dst_r->right, dst_r->bottom, mode, static_cast<void*>(maskRgn));
   dst_port->copy_from(*src_port, *src_r, *dst_r, mode);
   WindowManager::instance().recomposite_from_window(*dst_port);
 }
 
 void CopyMask(const BitMap* src, const BitMap* mask, BitMap* dst, const Rect* src_r, const Rect* mask_r, const Rect* dst_r) {
-  qd_log.debug_f("CopyMask({:p}, {:p}, {:p}, {{x0={}, y0={}, x1={}, y1={}}}, {{x0={}, y0={}, x1={}, y1={}}}, {{x0={}, y0={}, x1={}, y1={}}})",
-      static_cast<const void*>(src), static_cast<const void*>(mask), static_cast<void*>(dst),
-      src_r->left, src_r->top, src_r->right, src_r->bottom,
-      mask_r->left, mask_r->top, mask_r->right, mask_r->bottom,
-      dst_r->left, dst_r->top, dst_r->right, dst_r->bottom);
 
   auto* src_port = CCGrafPort::as_port(src);
   auto* mask_port = CCGrafPort::as_port(mask);
@@ -963,6 +967,12 @@ void CopyMask(const BitMap* src, const BitMap* mask, BitMap* dst, const Rect* sr
   if (!dst_port) {
     throw std::runtime_error("CopyMask called with a dst that isn't a CCGrafPort");
   }
+
+  dst_port->log.debug_f("CopyMask({}, {}, {}, {{x0={}, y0={}, x1={}, y1={}}}, {{x0={}, y0={}, x1={}, y1={}}}, {{x0={}, y0={}, x1={}, y1={}}})",
+      src_port->ref(), mask_port->ref(), dst_port->ref(),
+      src_r->left, src_r->top, src_r->right, src_r->bottom,
+      mask_r->left, mask_r->top, mask_r->right, mask_r->bottom,
+      dst_r->left, dst_r->top, dst_r->right, dst_r->bottom);
 
   // According to IM: QuickDraw 3-119, mask_r must be the same size as src_r, but Realmz violates this condition.
   // Empirically it seems that the right thing to do is to ignore the size of mask_r and just use its origin, so we do
@@ -1018,8 +1028,8 @@ void ScrollRect(const Rect* r, int16_t dh, int16_t dv, RgnHandle updateRgn) {
 }
 
 void EraseRect(const Rect* r) {
-  qd_log.debug_f("EraseRect({{x0={}, y0={}, x1={}, y1={}}})", r->left, r->top, r->right, r->bottom);
   auto& port = current_port();
+  port.log.debug_f("EraseRect({{x0={}, y0={}, x1={}, y1={}}})", r->left, r->top, r->right, r->bottom);
   if (port.bkPixPat) {
     port.draw_background_ppat(*r);
   } else {
@@ -1037,11 +1047,25 @@ void GetPortBounds(CGrafPtr port, Rect* rect) {
 }
 
 void ErasePortRect() {
+  /* TODO(fuzziqersoftware): It seems that disabling this function makes things
+   * work better; for example, the simple encounter dialog box is blank unless
+   * this function does nothing. We should figure out why this is the case;
+   * presumably this function was originally written for a reason and isn't
+   * supposed to do nothing.
+
   auto* cc_port = CCGrafPort::as_port(qd.thePort);
   if (!cc_port) {
     throw std::runtime_error("GetPortBounds called with a port that isn't a CCGrafPort");
   }
-  EraseRect(&cc_port->portRect);
+  // EraseRect expects a rect in port-space, not global-space
+  Rect r = {
+      .left = 0,
+      .top = 0,
+      .right = static_cast<int16_t>(cc_port->portRect.right - cc_port->portRect.left),
+      .bottom = static_cast<int16_t>(cc_port->portRect.bottom - cc_port->portRect.top),
+  };
+  EraseRect(&r);
+  */
 }
 
 // Cursor functions
@@ -1133,4 +1157,14 @@ void DebugSavePortContents(const CGrafPort* port, const char* filename) {
   if (port) {
     phosg::save_file(filename, cc_port->data.serialize(phosg::ImageFormat::WINDOWS_BITMAP));
   }
+}
+
+void LocalToGlobal(Point* pt) {
+  pt->h += qd.thePort->portRect.left;
+  pt->v += qd.thePort->portRect.top;
+}
+
+void GlobalToLocal(Point* pt) {
+  pt->h -= qd.thePort->portRect.left;
+  pt->v -= qd.thePort->portRect.top;
 }

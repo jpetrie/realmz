@@ -196,6 +196,8 @@ void CopyMask(const BitMap* srcBits, const BitMap* maskBits, BitMap* dstBits, co
     const Rect* dstRect);
 void ScrollRect(const Rect* r, int16_t dh, int16_t dv, RgnHandle updateRgn);
 void EraseRect(const Rect* r);
+void GlobalToLocal(Point* pt);
+void LocalToGlobal(Point* pt);
 
 CCrsrHandle GetCCursor(uint16_t crsrID);
 void SetCCursor(CCrsrHandle cCrsr);
