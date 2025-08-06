@@ -330,8 +330,9 @@ public:
         this->type = DialogItemType::RADIO_BUTTON;
         break;
 
-      // TODO: Figure out how to implement this. We'll need it for the trade/shop screen.
-      // case ControlType::SCROLL_BAR:
+      case ControlType::SCROLL_BAR:
+        this->type = DialogItemType::RESOURCE_CONTROL;
+        break;
 
       // We don't support these (yet?)
       // case ControlType::WINDOW_FONT_BUTTON:
