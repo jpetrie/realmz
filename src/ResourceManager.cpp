@@ -271,10 +271,9 @@ public:
 
     if (type == ResourceDASM::RESOURCE_TYPE_snd) {
       // TODO: Some action points seem to specify invalid sound resources by id, such as
-      // 0 (which should be the system beep, but which we haven't implemented), or AP 6/46
-      // in Bywater, which sets sound_or_lose_xap=XAP-1. For now, we can just skip playing
-      // the sound, but it might be worth investigating how to add system sounds or whether
-      // this sound_or_lose_xap signals some additional behavior that we haven't implemented.
+      // 0 (which should be the system beep, but which we haven't implemented). If we can't
+      // find the snd resource, we simply return nullptr here, which causes PlaySound to not
+      // play anything.
       return nullptr;
     }
 
