@@ -379,6 +379,7 @@ public:
   // an item_id of zero, which will be overwritten by add_dialog_item.
   static std::shared_ptr<DialogItem> from_control(std::shared_ptr<Control> control) {
     auto ret = std::make_shared<DialogItem>(control);
+    control->dialog_item = ret;
     all_items[ret->opaque_handle] = ret;
     return ret;
   }
