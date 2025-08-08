@@ -478,10 +478,11 @@ public:
         // TODO: For now, we just draw radio buttons the same as checkboxes. (Does Realmz even use radio buttons?)
         // Draw checkbox
         const auto& r = this->rect;
+        constexpr size_t size = 12;
         Point top_left = {.h = r.left, .v = r.top};
-        Point top_right = {.h = static_cast<int16_t>(r.left + 10), .v = r.top};
-        Point bottom_left = {.h = r.left, .v = static_cast<int16_t>(r.top + 10)};
-        Point bottom_right = {.h = static_cast<int16_t>(r.left + 10), .v = static_cast<int16_t>(r.top + 10)};
+        Point top_right = {.h = static_cast<int16_t>(r.left + size), .v = r.top};
+        Point bottom_left = {.h = r.left, .v = static_cast<int16_t>(r.top + size)};
+        Point bottom_right = {.h = static_cast<int16_t>(r.left + size), .v = static_cast<int16_t>(r.top + size)};
         port.draw_line(top_left, bottom_left); // Left side
         port.draw_line(top_right, bottom_right); // Right side
         port.draw_line(top_left, top_right); // Top side
@@ -490,6 +491,18 @@ public:
           // Draw an X also if the checkbox is checked
           port.draw_line(top_left, bottom_right);
           port.draw_line(top_right, bottom_left);
+        } else {
+          // Clear the background if the checkbox isn't checked
+          Rect bg_rect;
+          bg_rect.left = top_left.h + 1;
+          bg_rect.top = top_left.v + 1;
+          bg_rect.right = bottom_right.h - 1;
+          bg_rect.bottom = bottom_right.v - 1;
+          if (port.bkPixPat) {
+            port.draw_background_ppat(bg_rect);
+          } else {
+            port.clear_rect(&bg_rect);
+          }
         }
         int16_t h = get_height();
         int16_t w = get_width();

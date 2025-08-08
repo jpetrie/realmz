@@ -75,6 +75,7 @@ CCGrafPort::CCGrafPort()
   this->txSize = 12;
   this->pnLoc = {0, 0};
   this->pnSize = {1, 1};
+  this->pnMode = 0;
   this->portPixMap = nullptr;
   this->pnPixPat = nullptr;
   this->bkPixPat = nullptr;
