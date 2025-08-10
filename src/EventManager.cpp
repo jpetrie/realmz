@@ -321,6 +321,11 @@ public:
     return false;
   }
 
+  void move_mouse_to(const Point& pt) {
+    SDL_WarpMouseInWindow(WindowManager::instance().get_sdl_window().get(), pt.h, pt.v);
+    this->mouse_loc = pt;
+  }
+
 protected:
   Point mouse_loc = {0, 0};
   uint16_t modifier_flags = EVMOD_MOUSE_BUTTON_UP | EVMOD_WINDOW_ACTIVATED;
@@ -520,6 +525,10 @@ void GetMouse(Point* ret) {
 
 void GetMouseGlobal(Point* ret) {
   *ret = em.get_mouse_loc();
+}
+
+void SetMouseLocation(const Point* mouseLoc) {
+  em.move_mouse_to(*mouseLoc);
 }
 
 Boolean Button(void) {

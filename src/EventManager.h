@@ -86,6 +86,7 @@ void PushMenuEvent(int16_t menu_id, int16_t item_id);
 
 void GetMouse(Point* mouseLoc); // IM1-259
 void GetMouseGlobal(Point* mouseLoc); // extension (not part of original API)
+void SetMouseLocation(const Point* mouseLoc); // extension (not part of original API)
 Boolean Button(void); // IM1-259
 Boolean StillDown(void); // IM1-259
 
