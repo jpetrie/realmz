@@ -137,6 +137,10 @@ public:
   void recomposite_from_window(std::shared_ptr<Window> updated_window);
   void recomposite_all();
 
+  inline sdl_window_shared get_sdl_window() const {
+    return this->sdl_window;
+  }
+
   void on_debug_signal();
 
 private:

@@ -1014,9 +1014,16 @@ void centercursor(void) {
   LMSetRawMouseLocation(&newMousePosition);
   LMSetCursorNew(0xFFFF);
 #else
-  *(Point*)0x82c = newMousePosition;
-  *(Point*)0x828 = newMousePosition;
-  *(short*)0x8ce = 0xffff;
+  /* *** CHANGED FROM ORIGINAL IMPLEMENTATION ***
+   * NOTE(fuzziqersoftware): This really is how you would change the mouse
+   * location in Classic Mac OS; see LowMemoryGlobals.hh in resource_dasm for
+   * what these addresses represent. We can't do this on modern systems, of
+   * course, so we use SDL instead. */
+  // *(Point*)0x82c = newMousePosition;
+  // *(Point*)0x828 = newMousePosition;
+  // *(short*)0x8ce = 0xffff;
+  SetMouseLocation(&newMousePosition);
+  /* *** END CHANGES *** */
 #endif
 }
 
