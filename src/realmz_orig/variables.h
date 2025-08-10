@@ -10,12 +10,12 @@
 #include <stdint.h>
 #include <stdio.h>
 
-#define MyrBitSetShort(x, b) (*((uint16_t*)(x)) |= (1 << (15 - b)))
-#define MyrBitClrShort(x, b) (*((uint16_t*)(x)) &= ~(1 << (15 - b)))
-#define MyrBitTstShort(x, b) ((*((uint16_t*)(x)) & (1 << (15 - b))) != 0)
-#define MyrBitSetLong(x, b) (*((uint32_t*)(x)) |= (1 << (31 - b)))
-#define MyrBitClrLong(x, b) (*((uint32_t*)(x)) &= ~(1 << (31 - b)))
-#define MyrBitTstLong(x, b) ((*((uint32_t*)(x)) & (1 << (31 - b))) != 0)
+#define MyrBitSetShort(x, b) (*((uint16_t*)(x)) |= (1 << (15 - (b))))
+#define MyrBitClrShort(x, b) (*((uint16_t*)(x)) &= ~(1 << (15 - (b))))
+#define MyrBitTstShort(x, b) ((*((uint16_t*)(x)) & (1 << (15 - (b)))) != 0)
+#define MyrBitSetLong(x, b) (*((uint32_t*)(x)) |= (1 << (31 - (b))))
+#define MyrBitClrLong(x, b) (*((uint32_t*)(x)) &= ~(1 << (31 - (b))))
+#define MyrBitTstLong(x, b) ((*((uint32_t*)(x)) & (1 << (31 - (b)))) != 0)
 
 #if defined(REALMZ_CLASSIC)
 #include "Folders.h"

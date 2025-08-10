@@ -74,7 +74,7 @@ static inline void CvtTabRectToPc(Rect* x, unsigned int count) {
 }
 
 // These structs are all shorts, and can be treated as an array.
-#define CVT_ALL_SHORTS(x) CvtTabShortToPc((short*)x, (sizeof(*x) / 2))
+#define CVT_ALL_SHORTS(x) CvtTabShortToPc((short*)(x), (sizeof(*(x)) / 2))
 
 static inline void CvtMapStatToPc(struct mapstats* x) {
   CVT_ALL_SHORTS(x);
