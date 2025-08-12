@@ -196,7 +196,7 @@ int16_t DIBadMount(Point where, int32_t evtMessage);
 
 #define GetDialogWindow(pDialog) (pDialog)
 #define GetWindowPort(x) (x)
-#define BitAnd(x, y) (x & y)
+#define BitAnd(x, y) ((x) & (y))
 int16_t OpenDeskAcc(ConstStr255Param deskAccName);
 void SetItemMark(MenuHandle theMenu, int16_t item, int16_t markChar);
 void PaintRect(const Rect* r);

@@ -1139,13 +1139,18 @@ void eraseshopname(short mode) {
 
 /**************************** shortupdate ****************/
 void shortupdate(short mode) {
+  // NOTE(fuzziqersoftware): See note in mapstuff.cc about this function
+  WindowManager_SetEnableRecomposite(0);
   needupdate = FALSE;
   updateprep();
   for (t = 0; t <= charnum; t++)
     updatechar(t, mode);
+  WindowManager_SetEnableRecomposite(1);
 }
 /**************************** selectupdate ****************/
 void selectupdate(void) {
+  // NOTE(fuzziqersoftware): See note in mapstuff.cc about this function
+  WindowManager_SetEnableRecomposite(0);
   for (t = 0; t <= charnum; t++) {
     if (select[t]) {
       if (select[t] > 0)
@@ -1155,6 +1160,7 @@ void selectupdate(void) {
       select[t] = 0;
     }
   }
+  WindowManager_SetEnableRecomposite(1);
 }
 
 /*************** center *********************/

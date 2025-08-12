@@ -5,6 +5,9 @@
 void updateitems(short top, short bottom) {
   short t;
 
+  // NOTE(fuzziqersoftware): See note in mapstuff.cc about this function
+  WindowManager_SetEnableRecomposite(0);
+
   SetPort(GetWindowPort(itemswindow));
   box.left = 10;
   box.right = 284 + leftshift;
@@ -47,4 +50,6 @@ void updateitems(short top, short bottom) {
     DrawPicture(marker, &box3);
   }
   c[charselectnew] = characterl;
+
+  WindowManager_SetEnableRecomposite(1);
 }

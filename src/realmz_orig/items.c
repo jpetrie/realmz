@@ -155,6 +155,9 @@ short items(void) {
 
 backup:
 
+  // NOTE(fuzziqersoftware): See note in mapstuff.cc about this function
+  WindowManager_SetEnableRecomposite(0);
+
   SetPort(GetWindowPort(itemswindow));
   TextMode(0);
   ForeColor(yellowColor);
@@ -228,6 +231,9 @@ backup:
   calcw(charselectnew);
 
   updatecharinfo();
+
+  // NOTE(fuzziqersoftware): See note in mapstuff.cc about this function
+  WindowManager_SetEnableRecomposite(1);
 
   for (;;) {
   tryagain:

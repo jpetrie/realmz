@@ -92,5 +92,13 @@ std::string replace_param_text(const std::string& text) {
       ret.append(1, (ch == '\r') ? '\n' : ch);
     }
   }
+
+  // Sometimes the string can contain null bytes at this point; we trim the
+  // string in that case since that would match the original system's behavior
+  size_t zero_pos = ret.find('\0');
+  if (zero_pos != std::string::npos) {
+    ret.resize(zero_pos);
+  }
+
   return ret;
 }

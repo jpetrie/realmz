@@ -14,7 +14,7 @@
 #define greenColor 341
 #define blueColor 409
 
-#define GetPortBitMapForCopyBits(x) ((BitMap*)x)
+#define GetPortBitMapForCopyBits(x) ((BitMap*)(x))
 
 #ifdef __cplusplus
 extern "C" {

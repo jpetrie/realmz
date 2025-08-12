@@ -15,13 +15,13 @@
 #define SWAP_BIG16(x) OSSwapBigToHostInt16(x)
 #define SWAP_BIG32(x) OSSwapBigToHostInt32(x)
 
-static inline void SLOWSWAP_BIG16(short* x) {
+static inline void SLOWSWAP_BIG16(int16_t* x) {
   uint8_t* p = (uint8_t*)x;
   uint8_t a = p[0], b = p[1];
   p[0] = b;
   p[1] = a;
 }
-static inline void SLOWSWAP_BIG32(long* x) {
+static inline void SLOWSWAP_BIG32(int32_t* x) {
   uint8_t* p = (uint8_t*)x;
   uint8_t a = p[0], b = p[1], c = p[2], d = p[3];
   p[0] = d;
@@ -38,27 +38,27 @@ static inline void rintel2moto(Rect* r) {
   r->right = SWAP_BIG16(r->right);
 }
 
-static inline void CvtShortToPc(short* x) { SLOWSWAP_BIG16(x); }
-static inline void CvtLongToPc(long* x) { SLOWSWAP_BIG32(x); }
-static inline void CvtFloatToPc(float* x) { SLOWSWAP_BIG32((long*)x); }
+static inline void CvtShortToPc(int16_t* x) { SLOWSWAP_BIG16(x); }
+static inline void CvtLongToPc(int32_t* x) { SLOWSWAP_BIG32(x); }
+static inline void CvtFloatToPc(float* x) { SLOWSWAP_BIG32((int32_t*)x); }
 
 static inline void CvtBoolToPc(Boolean* x) {
   if (sizeof(Boolean) == 2)
-    SLOWSWAP_BIG16((short*)x);
+    SLOWSWAP_BIG16((int16_t*)x);
   else if (sizeof(Boolean) == 4)
-    SLOWSWAP_BIG32((long*)x);
+    SLOWSWAP_BIG32((int32_t*)x);
 }
 
 static inline void CvtRectToPc(Rect* x) {
   rintel2moto(x);
 }
 
-static inline void CvtTabLongToPc(long* x, unsigned int count) {
+static inline void CvtTabLongToPc(int32_t* x, unsigned int count) {
   while (count--)
     CvtLongToPc(x++);
 }
 
-static inline void CvtTabShortToPc(short* x, unsigned int count) {
+static inline void CvtTabShortToPc(int16_t* x, unsigned int count) {
   while (count--)
     CvtShortToPc(x++);
 }
@@ -74,7 +74,7 @@ static inline void CvtTabRectToPc(Rect* x, unsigned int count) {
 }
 
 // These structs are all shorts, and can be treated as an array.
-#define CVT_ALL_SHORTS(x) CvtTabShortToPc((short*)x, (sizeof(*x) / 2))
+#define CVT_ALL_SHORTS(x) CvtTabShortToPc((short*)(x), (sizeof(*(x)) / 2))
 
 static inline void CvtMapStatToPc(struct mapstats* x) {
   CVT_ALL_SHORTS(x);

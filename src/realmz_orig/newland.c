@@ -836,43 +836,47 @@ startover:
         break;
 
       case 99: /***** get scenario registration *****/
+        /* *** CHANGED FROM ORIGINAL IMPLEMENTATION ***
+         * We don't require registration, since this program is now open source. */
+        // if (currentscenario > topfantasoftsceanrio) //*** v7.1 Begin   both mac and PC codes for custom scenario use same scheme
+        // {
+        //   if (!regscen_pc_custom())
+        //   moveparty(-1);
+        //   return (0);
+        // }
 
-        if (currentscenario > topfantasoftsceanrio) //*** v7.1 Begin   both mac and PC codes for custom scenario use same scheme
-        {
-          if (!regscen_pc_custom())
-            moveparty(-1);
-          return (0);
-        }
-
-#ifdef PC
-        if (currentscenario > topfantasoftsceanrio) {
-          if (!regscen_pc_custom())
-            moveparty(-1);
-          return (0);
-        } else if (!regscen_pc()) {
-          moveparty(-1);
-          return (0);
-        }
-#else
-        if (!regscen()) {
-          moveparty(-1);
-          return (0);
-        }
-#endif
-        //*** v7.1 End
+        // #ifdef PC
+        // if (currentscenario > topfantasoftsceanrio) {
+        //   if (!regscen_pc_custom())
+        //   moveparty(-1);
+        //   return (0);
+        // } else if (!regscen_pc()) {
+        //   moveparty(-1);
+        //   return (0);
+        // }
+        // #else
+        // if (!regscen()) {
+        //   moveparty(-1);
+        //   return (0);
+        // }
+        // #endif
+        // //*** v7.1 End
+        /* *** END CHANGES *** */
         break;
 
       case 98: /****** require registered game ********/
-
-#if !development
-        if (!doreg()) {
-          flashmessage((StringPtr) "Sorry, you cannot enter this area until you have registered.", 40, 50, 0, 10105);
-          moveparty(-1);
-          if (id)
-            exit(0);
-          return (0);
-        }
-#endif
+        /* *** CHANGED FROM ORIGINAL IMPLEMENTATION ***
+         * We don't require registration, since this program is now open source. */
+        // #if !development
+        // if (!doreg()) {
+        //   flashmessage((StringPtr) "Sorry, you cannot enter this area until you have registered.", 40, 50, 0, 10105);
+        //   moveparty(-1);
+        //   if (id)
+        //   exit(0);
+        //   return (0);
+        // }
+        // #endif
+        /* *** END CHANGES *** */
         break;
 
       case 97: /****** Allow Full Map ********/
@@ -1352,13 +1356,16 @@ startover:
         break;
 
       case 84: /************ check for registered scenario ***********/
-#if !development
-        if (quest[127] != 66) {
-          GetIndString(myString, 3, 109);
-          flashmessage(myString, 40, 50, 0, 10105);
-          exit(0);
-        }
-#endif
+        /* *** CHANGED FROM ORIGINAL IMPLEMENTATION ***
+         * We don't require registration, since this program is now open source. */
+        // #if !development
+        // if (quest[127] != 66) {
+        //   GetIndString(myString, 3, 109);
+        //   flashmessage(myString, 40, 50, 0, 10105);
+        //   exit(0);
+        // }
+        // #endif
+        /* *** END CHANGES *** */
         break;
 
       case 83: /************ Turn Priest Turning on ***********/
