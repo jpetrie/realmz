@@ -888,7 +888,7 @@ void DisposeGWorld(GWorldPtr offscreenWorld) {
 void DrawString(ConstStr255Param s) {
   auto str = string_for_pstr<255>(s);
   auto& port = current_port();
-  port.log.debug_f("DrawString(\"{}\")", str);
+  port.log.debug_f("DrawString(\"{}\") @ pnLoc={{x={}, y={}}}", str, port.pnLoc.h, port.pnLoc.v);
   port.draw_text(str);
   WindowManager::instance().recomposite_from_window(port);
 }

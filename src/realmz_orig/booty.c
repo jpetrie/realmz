@@ -18,17 +18,28 @@ void updatebootymoney(Rect icon, Rect swapicon) {
   gemleft = icon.left + 34;
   jewleft = icon.left + 42;
 
-  MoveTo(goldleft + leftshift, moneytop);
+  /* *** CHANGED FROM ORIGINAL IMPLEMENTATION ***
+   * NOTE(fuzziqersoftware): Originally leftshift was added to the coordinates
+   * here, but that seems wrong - it causes the numbers to be rendered outside
+   * the window's bounds, which is obviously incorrect. Removing leftshift from
+   * these computations gives the corect behavior. */
+
+  // MoveTo(goldleft + leftshift, moneytop);
+  MoveTo(goldleft, moneytop);
   MyrNumToString(moneypool[0], myString);
   MyrDrawCString((Ptr)myString);
 
-  MoveTo(gemleft + leftshift, moneytop + 15);
+  // MoveTo(gemleft + leftshift, moneytop + 15);
+  MoveTo(gemleft, moneytop + 15);
   MyrNumToString(moneypool[1], myString);
   MyrDrawCString((Ptr)myString);
 
-  MoveTo(jewleft + leftshift, moneytop + 30);
+  // MoveTo(jewleft + leftshift, moneytop + 30);
+  MoveTo(jewleft, moneytop + 30);
   MyrNumToString(moneypool[2], myString);
   MyrDrawCString((Ptr)myString);
+
+  /* *** END CHANGES *** */
 
   if ((!moneypool[0]) && (!moneypool[1]) && (!moneypool[2]))
     ploticon3(2019, swapicon);
