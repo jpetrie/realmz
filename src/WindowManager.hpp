@@ -87,6 +87,9 @@ public:
 };
 
 class WindowManager {
+public:
+  CCGrafPort screen_port;
+
 private:
   std::unordered_map<DialogItemHandle, std::shared_ptr<DialogItem>> dialog_items_by_handle;
   // TODO(fuzziqersoftware): It'd be nice to get rid of this map and treat Windows similarly to CCGrafPorts. This is

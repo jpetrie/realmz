@@ -566,8 +566,10 @@ void CCGrafPort::copy_from(const CCGrafPort& src, const Rect& src_rect, const Re
     case 0x23: // subPin
     case 0x25: // addMax
     case 0x26: // subOver
-    case 0x27: // adMin
       throw std::runtime_error("Unimplemented CopyBits transfer mode");
+    case 0x27: // adMin
+      // TODO: Need to implement for moveicon
+      break;
     default:
       throw std::runtime_error("Unknown CopyBits transfer mode");
   }
@@ -759,6 +761,7 @@ void SetPort(CGrafPtr port) {
 // qd.thePort to point at the default port
 void InitGraf(QuickDrawGlobals*) {
   qd.thePort = &get_default_port();
+  qd.screenBits = reinterpret_cast<BitMap*>(&WindowManager::instance().screen_port);
 }
 
 CCGrafPort& current_port() {
