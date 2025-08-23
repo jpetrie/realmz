@@ -568,7 +568,15 @@ void CCGrafPort::copy_from(const CCGrafPort& src, const Rect& src_rect, const Re
     case 0x26: // subOver
       throw std::runtime_error("Unimplemented CopyBits transfer mode");
     case 0x27: // adMin
-      // TODO: Need to implement for moveicon
+      this->data.copy_from_with_custom(
+          src.data, dst_rect.left, dst_rect.top, dst_w, dst_h, src_rect.left, src_rect.top, src_w, src_h, phosg::ResizeMode::NEAREST_NEIGHBOR,
+          [](uint32_t dst_c, uint32_t src_c) -> uint32_t {
+            return phosg::rgba8888(
+                std::min<uint8_t>(phosg::get_r(dst_c), phosg::get_r(src_c)),
+                std::min<uint8_t>(phosg::get_g(dst_c), phosg::get_g(src_c)),
+                std::min<uint8_t>(phosg::get_b(dst_c), phosg::get_b(src_c)),
+                std::min<uint8_t>(phosg::get_a(dst_c), phosg::get_a(src_c)));
+          });
       break;
     default:
       throw std::runtime_error("Unknown CopyBits transfer mode");
