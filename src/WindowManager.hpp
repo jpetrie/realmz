@@ -99,7 +99,6 @@ private:
   std::shared_ptr<Window> top_window;
   std::shared_ptr<Window> bottom_window;
   sdl_window_shared sdl_window;
-  phosg::ImageRGBA8888N sdl_window_data;
   bool text_editing_active = false;
   bool recomposite_enabled = true;
 
