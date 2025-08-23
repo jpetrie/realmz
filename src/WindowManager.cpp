@@ -500,10 +500,17 @@ public:
       }
       case ResourceFile::DecodedDialogItem::Type::RESOURCE_CONTROL: {
         RGBColor prev_color;
+        RGBColor prev_bg_color;
         GetForeColor(&prev_color);
+        GetBackColor(&prev_bg_color);
+
+        auto r = this->rect;
+
+        auto bg_color = RGBColor{.red = 0x6666, .green = 0x6666, .blue = 0x6666};
+        RGBBackColor(&bg_color);
+        port.erase_rect(r);
 
         ForeColor(blackColor);
-        auto r = this->rect;
         auto w = get_width();
         auto h = get_height();
 
@@ -517,7 +524,7 @@ public:
 
         auto slider_offset = get_slider_offset();
         if (slider_offset > 0) {
-          ForeColor(whiteColor);
+          ForeColor(yellowColor);
         }
 
         Rect slider_rect{
@@ -528,6 +535,7 @@ public:
         port.draw_rect_outline(slider_rect);
 
         RGBForeColor(&prev_color);
+        RGBBackColor(&prev_bg_color);
         break;
       }
       case ResourceFile::DecodedDialogItem::Type::HELP_BALLOON:
@@ -624,7 +632,9 @@ public:
     if (this->control->max > this->control->min) {
       auto value_range = this->control->max - this->control->min;
       value_offset = static_cast<float>(this->control->value - this->control->min) / value_range;
-      auto slider_range = h - 2 * w;
+      // Slider offset is from the top of the slider, so the range is reduced by the top and bottom
+      // scroll buttons PLUS the height of the slider (3 * w)
+      auto slider_range = h - 3 * w;
       slider_offset = slider_range * value_offset;
     }
     return slider_offset;
