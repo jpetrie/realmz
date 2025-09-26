@@ -18,17 +18,38 @@ set(CMAKE_XCODE_ATTRIBUTE_DEBUG_INFORMATION_FORMAT "dwarf")
 #     add_compile_options(-Wall -Wextra -Werror)
 # endif()
 
+# set the output directory for built objects.
+# This makes sure that the dynamic library goes into the build directory automatically.
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/")
+set(CMAKE_LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/")
+
 # Library search
 find_package(phosg REQUIRED)
+message(STATUS "CMake found phosg at: ${phosg_DIR}")
 find_package(resource_file REQUIRED)
-find_package(SDL3 REQUIRED)
-find_package(SDL3_ttf REQUIRED)
-find_package(SDL3_image REQUIRED)
+message(STATUS "CMake found resource_file at: ${resource_file_DIR}")
+find_package(ZLIB REQUIRED)
 
 # Debug flag - REALMZ_DEBUG is defined if the build type is Debug or RelWithDebInfo
-if(CMAKE_BUILD_TYPE STREQUAL "Debug" OR CMAKE_BUILD_TYPE STREQUAL "RelWithDebInfo")
+if($<CONFIG:Debug,RelWithDebInfo>)
     add_compile_definitions(REALMZ_DEBUG)
 endif()
+
+# For cross-compilation to Windows
+if(WIN32)
+    link_directories(/Users/applegatedt/mingw-install/lib /Users/applegatedt/workspace/realmz-public/build_win/vendored/SDL_ttf/external/freetype)
+    add_subdirectory(vendored/SDL EXCLUDE_FROM_ALL)
+    add_subdirectory(vendored/SDL_ttf EXCLUDE_FROM_ALL)
+    add_subdirectory(vendored/SDL_image EXCLUDE_FROM_ALL)
+else()
+    find_package(SDL3 REQUIRED)
+    message(STATUS "CMake found SDL3 at: ${SDL3_DIR}")
+    find_package(SDL3_ttf REQUIRED)
+    message(STATUS "CMake found SDL3_ttf at: ${SDL3_ttf_DIR}")
+    find_package(SDL3_image REQUIRED)
+    message(STATUS "CMake found SDL3_image at: ${SDL3_image_DIR}")
+endif()
+
 
 # Executable definition
 set(REALMZ_EXECUTABLE_SRC src/realmz_orig/main.c)
@@ -185,7 +206,8 @@ set(SOURCES
     src/realmz_orig/viewcharacter.c
     src/realmz_orig/warn.c
     src/realmz_orig/wear.c
-    src/macos/MenuController.mm
+    # src/macos/MenuController.mm
+    src/windows/MenuController.cpp
     src/RealmzCocoa.c
     src/EventManager.cpp
     src/FileManager.cpp
@@ -255,13 +277,22 @@ add_library(realmz_lib STATIC ${SOURCES})
 target_compile_definitions(realmz_lib PUBLIC REALMZ_COCOA=1)
 target_compile_options(realmz_lib PUBLIC -fpascal-strings)
 target_include_directories(realmz_lib PUBLIC ${SDL3_INCLUDE_DIRS} src src/realmz_orig src/macos)
+
+
+if(APPLE)
+  target_compile_definitions(realmz_lib PUBLIC TARGET_MACOS=1)
+elseif(WIN32)
+  target_compile_definitions(realmz_lib PUBLIC TARGET_WINDOWS=1 PHOSG_WINDOWS=1)
+endif()
+
 target_link_libraries(realmz_lib
-    ${SDL3_LIBRARIES}
+    SDL3::SDL3-shared
     SDL3_ttf::SDL3_ttf
     SDL3_image::SDL3_image
     resource_file::resource_file
-    "-framework Foundation"
-    "-framework Cocoa"
+    bcrypt
+    # "-framework Foundation"
+    # "-framework Cocoa"
 )
 
 add_executable(Realmz MACOSX_BUNDLE
@@ -276,8 +307,9 @@ target_include_directories(Realmz PUBLIC ${SDL3_INCLUDE_DIRS} src src/realmz_ori
 target_link_libraries(Realmz
     PUBLIC
     realmz_lib
-    "-framework Foundation"
-    "-framework Cocoa"
+    SDL3::SDL3-shared
+    # "-framework Foundation"
+    # "-framework Cocoa"
 )
 
 target_compile_options(Realmz PRIVATE -fsanitize=address)

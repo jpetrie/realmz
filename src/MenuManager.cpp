@@ -4,11 +4,16 @@
 #include "MenuManager-C-Interface.h"
 #include "ResourceManager.h"
 #include "StringConvert.hpp"
-#include "macos/MenuController.h"
 #include <list>
 #include <phosg/Strings.hh>
 #include <resource_file/ResourceFile.hh>
 #include <stdexcept>
+
+#ifdef TARGET_MACOS
+#include "macos/MenuController.h"
+#elif TARGET_WINDOWS
+#include "windows/MenuController.h"
+#endif
 
 using ResourceDASM::ResourceFile;
 
