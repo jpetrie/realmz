@@ -38,7 +38,7 @@ endif()
 
 # For cross-compilation to Windows
 if(WIN32)
-    link_directories(/Users/applegatedt/mingw-install/lib /Users/applegatedt/workspace/realmz-public/build_win/vendored/SDL_ttf/external/freetype)
+    link_directories($ENV{HOME}/mingw-install/lib ${CMAKE_CURRENT_BINARY_DIR}/vendored/SDL_ttf/external/freetype)
 endif()
 
 # Dependencies
