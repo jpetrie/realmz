@@ -8,7 +8,10 @@
 
 static phosg::PrefixedLogger fm_log("[FileManager] ");
 
-std::string host_filename_for_mac_filename(const std::string& mac_path, bool implicitly_local) {
+static const char* user_root = SDL_GetPrefPath("Fantasoft", "Realmz");
+
+std::string
+host_filename_for_mac_filename(const std::string& mac_path, bool implicitly_local) {
   std::string ret = mac_path;
 
   // If the path begins with ':', it's a relative path. On modern systems,
@@ -50,6 +53,13 @@ std::string host_filename_for_FSSpec(const FSSpec* fsp) {
   }
 
   return host_filename_for_mac_filename(string_for_pstr<64>(fsp->name), (fsp->parID == -1));
+}
+
+void InitUserDir() {
+  // Create all save game folders
+  char* saves[] = {"A", "B", "C", "D", "E", "F", "G", "H", "I", "J"};
+  for (auto save : saves)
+    [strcat(user_root)]
 }
 
 OSErr GetVInfo(int16_t drvNum, StringPtr volName, int16_t* vRefNum, int32_t* freeBytes) {

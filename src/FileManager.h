@@ -39,6 +39,7 @@ typedef struct {
   uint16_t fdFldr;
 } FInfo;
 
+void InitUserDir();
 OSErr GetVInfo(int16_t drvNum, StringPtr volName, int16_t* vRefNum, int32_t* freeBytes);
 void GetFInfo(const Str63 fName, int16_t vRefNum, FInfo* fInfo);
 OSErr FSpGetFInfo(const FSSpec* spec, FInfo* fndrInfo);
