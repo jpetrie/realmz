@@ -196,8 +196,4 @@ void InitRealmzCocoa() {
   if (FSpOpenResFile(&spec, fsRdPerm) < 0) {
     fprintf(stderr, "WARNING: Cannot open the Realmz application resource file\n");
   }
-
-  // Initialize key user data directory structure and files for saved games, character data, and
-  // custom scenarios
-  InitUserDir();
 }
