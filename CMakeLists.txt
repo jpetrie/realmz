@@ -229,7 +229,7 @@ set(realmz_lib_LINK_LIBRARIES
     SDL3_image::SDL3_image
     z
     phosg::phosg
-    resource_file
+    resource_file::resource_file
 )
 
 if(APPLE)
