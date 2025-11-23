@@ -5,6 +5,8 @@
 #include "MenuManager-C-Interface.h"
 #include "ResourceManager.h"
 #include "StringConvert.hpp"
+#include "WindowManager.hpp"
+#include <functional>
 #include <list>
 #include <phosg/Strings.hh>
 #include <resource_file/ResourceFile.hh>
@@ -225,8 +227,30 @@ void AppendMenu(MenuHandle menu, ConstStr255Param data) {
   item.name = s;
 }
 
+// Ugh, have to use global variable for the callback to be able to modify it
+static int32_t result;
+
+void popupCallback(int16_t menuId, int16_t itemId) {
+  result = (menuId << 16) | itemId;
+}
+
+// The PopUpMenuSelect function returns the menu ID of the chosen menu in the high-order word of its function
+// result and the chosen menu item in the low-order word. (3-120 Menu Manager Reference)
 int32_t PopUpMenuSelect(MenuHandle menu, int16_t top, int16_t left, int16_t popUpItem) {
-  return 0;
+  auto m = mm.get_menu(menu);
+
+  auto sdl_window = WindowManager::instance().get_sdl_window();
+  auto properties = SDL_GetWindowProperties(sdl_window.get());
+  auto nsWindow = SDL_GetPointerProperty(properties, SDL_PROP_WINDOW_COCOA_WINDOW_POINTER, NULL);
+
+  result = -1;
+  MCCreatePopupMenu(nsWindow, m, {top, left}, &popupCallback);
+
+  while (result == -1) {
+    SDL_Delay(1);
+  }
+
+  return result;
 }
 
 int16_t CountMItems(MenuHandle theMenu) {
