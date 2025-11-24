@@ -115,10 +115,83 @@ NSMenu* MCCreateSubMenu(NSString* title, const Menu& menuRes, const std::list<st
 
 @end
 
+@interface MCPopupMenu : NSObject
+
+@property(readonly) NSMenu* contextualMenu;
+@property(nonatomic) void (*callback)(int16_t, int16_t);
+
+@end
+
+@implementation MCPopupMenu
+
+@synthesize callback;
+
+- (id)initWithWindow:(void *)nsWindow
+    menu:(std::shared_ptr<Menu>)menu
+    loc:(std::pair<int16_t, int16_t>)loc
+    callback:(void (*)(int16_t, int16_t))_callback {
+  if (self = [super init]) {
+    callback = _callback;
+    [self CreateMCPopupMenu:nsWindow menu:menu loc:loc];
+  }
+  return self;
+}
+
+- (IBAction)MCHandlePopupMenuClick:(id)sender {
+  id identifier = [sender representedObject];
+  callback([identifier menuID], [identifier itemID]);
+}
+
+- (void)CreateMCPopupMenu:(void *)nsWindow
+    menu:(std::shared_ptr<Menu>)menu
+    loc:(std::pair<int16_t, int16_t>)p {
+  _contextualMenu = [[NSMenu alloc] initWithTitle:@"Contextual Menu"];
+  [_contextualMenu setAutoenablesItems:NO];
+
+  int itemId = 0;
+  for(const auto& item: menu->items) {
+    itemId++;
+    NSString* name = [NSString stringWithCString:item.name.c_str() encoding:NSMacOSRomanStringEncoding];
+    NSMenuItem *menuItem = [[NSMenuItem alloc] initWithTitle:name action:NULL keyEquivalent:@""];
+    [menuItem setTarget:self];
+    [menuItem setAction:@selector(MCHandlePopupMenuClick:)];
+    id menuIdentifier = [[MCMenuItemIdentifier alloc] initWithRawIds:menu->menu_id itemId:itemId];
+    [menuItem setRepresentedObject:menuIdentifier];
+    menuItem.enabled = true;
+    [_contextualMenu addItem:menuItem];
+  }
+
+  // In the Cocoa framework, the origin is the bottom left. The point p is passed to us as (top, left).
+  NSWindow* window = (NSWindow*)nsWindow;
+  NSView* view = window.contentView;
+  NSSize size = view.frame.size;
+  NSPoint loc = NSMakePoint(p.second, size.height - p.first);
+
+  [[NSNotificationCenter defaultCenter] addObserver:self
+    selector:@selector(HandlePopupMenuClosed:)
+    name:NSMenuDidEndTrackingNotification
+    object:_contextualMenu];
+
+  BOOL result = [_contextualMenu popUpMenuPositioningItem:nil atLocation:loc inView:view];
+}
+
+- (void)HandlePopupMenuClosed:(NSNotification*)notification {
+  [[NSNotificationCenter defaultCenter] removeObserver:self
+    name:NSMenuDidEndTrackingNotification
+    object:_contextualMenu];
+  callback(0, 0);
+}
+
+@end
+
 void MCSync(std::shared_ptr<MenuList> menuList, void (*callback)(int16_t, int16_t)) {
   NSApplication* application = [NSApplication sharedApplication];
 
   id newMenu = [[MCMenuBar alloc] initWithMenuListCallback:*menuList callback:callback];
 
   application.mainMenu = [newMenu menuObject];
+}
+
+void MCCreatePopupMenu(void *nsWindow, std::shared_ptr<Menu> menu, std::pair<int16_t, int16_t> loc, void (*callback)(int16_t, int16_t)) {
+  [[MCPopupMenu alloc] initWithWindow:nsWindow menu:menu loc:loc callback:callback];
 }

@@ -5,6 +5,8 @@
 #include "MenuManager-C-Interface.h"
 #include "ResourceManager.h"
 #include "StringConvert.hpp"
+#include "WindowManager.hpp"
+#include <functional>
 #include <list>
 #include <phosg/Strings.hh>
 #include <resource_file/ResourceFile.hh>
@@ -173,6 +175,7 @@ void SetMenuItemText(MenuHandle theMenu, uint16_t item, ConstStr255Param itemStr
     return;
   }
   menu->items.at(item - 1).name = string_for_pstr<256>(itemString);
+  mm.sync();
 }
 
 int32_t MenuSelect(Point startPt) {
@@ -193,6 +196,7 @@ void DisableItem(MenuHandle theMenu, uint16_t item) {
       menu->items[item - 1].enabled = false;
     }
   }
+  mm.sync();
 }
 
 void EnableItem(MenuHandle theMenu, uint16_t item) {
@@ -206,6 +210,7 @@ void EnableItem(MenuHandle theMenu, uint16_t item) {
       menu->items[item - 1].enabled = true;
     }
   }
+  mm.sync();
 }
 
 void CheckItem(MenuHandle theMenu, uint16_t item, Boolean checked) {
@@ -215,6 +220,7 @@ void CheckItem(MenuHandle theMenu, uint16_t item, Boolean checked) {
   } else {
     menu->items.at(item - 1).checked = checked;
   }
+  mm.sync();
 }
 
 void AppendMenu(MenuHandle menu, ConstStr255Param data) {
@@ -225,8 +231,32 @@ void AppendMenu(MenuHandle menu, ConstStr255Param data) {
   item.name = s;
 }
 
+// Ugh, have to use global variable for the callback to be able to modify it
+static int32_t result;
+
+void popupCallback(int16_t menuId, int16_t itemId) {
+  result = (menuId << 16) | itemId;
+}
+
+// The PopUpMenuSelect function returns the menu ID of the chosen menu in the high-order word of its function
+// result and the chosen menu item in the low-order word. (3-120 Menu Manager Reference)
 int32_t PopUpMenuSelect(MenuHandle menu, int16_t top, int16_t left, int16_t popUpItem) {
-  return 0;
+  auto m = mm.get_menu(menu);
+
+  auto sdl_window = WindowManager::instance().get_sdl_window();
+  auto properties = SDL_GetWindowProperties(sdl_window.get());
+  auto nsWindow = SDL_GetPointerProperty(properties, SDL_PROP_WINDOW_COCOA_WINDOW_POINTER, NULL);
+
+  result = -1;
+  MCCreatePopupMenu(nsWindow, m, {top, left}, &popupCallback);
+
+  // Wait for either an item to be selected and fire the callback to modify result, or for
+  // the menu to be closed without a selection, which will fire the callback with 0 as the result.
+  while (result == -1) {
+    SDL_Delay(1);
+  }
+
+  return result;
 }
 
 int16_t CountMItems(MenuHandle theMenu) {
