@@ -55,15 +55,19 @@ void HookWndProc(HWND hwnd) {
   }
 }
 
+HWND get_window_handle(SDL_Window* sdl_window) {
+  auto props = SDL_GetWindowProperties(sdl_window);
+  return reinterpret_cast<HWND>(SDL_GetPointerProperty(
+      props,
+      SDL_PROP_WINDOW_WIN32_HWND_POINTER,
+      NULL));
+}
+
 void WinMenuSync(SDL_Window* sdl_window, std::shared_ptr<WinMenuList> menu_list, void (*callback)(int16_t, int16_t)) {
   // Update current menu click callback function
   menuCallback = callback;
 
-  auto props = SDL_GetWindowProperties(sdl_window);
-  auto wind_handle = reinterpret_cast<HWND>(SDL_GetPointerProperty(
-      props,
-      SDL_PROP_WINDOW_WIN32_HWND_POINTER,
-      NULL));
+  auto wind_handle = get_window_handle(sdl_window);
 
   HMENU win_menu = CreateMenu();
   MENUINFO win_menu_info = MENUINFO{
@@ -117,4 +121,38 @@ void WinMenuSync(SDL_Window* sdl_window, std::shared_ptr<WinMenuList> menu_list,
   if (old_menu) {
     DestroyMenu(old_menu);
   }
+}
+
+int WinCreatePopupMenu(SDL_Window* sdl_window, std::shared_ptr<WinMenu> menu) {
+  auto wind_handle = get_window_handle(sdl_window);
+
+  HMENU popupMenu = CreatePopupMenu();
+
+  int i{0};
+  for (const auto& item : menu->items) {
+    i++;
+    auto name = item.name.c_str();
+    AppendMenu(
+        popupMenu,
+        MF_ENABLED | MF_STRING,
+        i,
+        name);
+  }
+
+  // TrackPopupMenu displays the menu in screen coordinates, not window coordinates. Rather
+  // thank require the caller to convert the mouse position from local to global coordinates,
+  // it's easier to just get the mouse position fresh right here.
+  POINT pt;
+  GetCursorPos(&pt);
+
+  int result = TrackPopupMenu(popupMenu,
+      TPM_RETURNCMD | TPM_RIGHTBUTTON,
+      pt.x, pt.y,
+      0,
+      wind_handle,
+      NULL);
+
+  DestroyMenu(popupMenu);
+
+  return result;
 }

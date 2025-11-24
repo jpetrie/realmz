@@ -43,3 +43,14 @@ void MCSync(std::shared_ptr<MenuList> menuList, void (*callback)(int16_t, int16_
 
   WinMenuSync(sdl_window.get(), win_menu_list, callback);
 }
+
+void MCCreatePopupMenu(
+    void* nsWindow, // unused
+    std::shared_ptr<Menu> menu,
+    std::pair<int16_t, int16_t> loc,
+    void (*callback)(int16_t, int16_t)) {
+  auto sdl_window = WindowManager::instance().get_sdl_window();
+  auto m = win_menu_from_menu(menu);
+  auto result = WinCreatePopupMenu(sdl_window.get(), m);
+  callback(m->menu_id, result);
+}
