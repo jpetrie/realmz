@@ -175,6 +175,7 @@ void SetMenuItemText(MenuHandle theMenu, uint16_t item, ConstStr255Param itemStr
     return;
   }
   menu->items.at(item - 1).name = string_for_pstr<256>(itemString);
+  mm.sync();
 }
 
 int32_t MenuSelect(Point startPt) {
@@ -195,6 +196,7 @@ void DisableItem(MenuHandle theMenu, uint16_t item) {
       menu->items[item - 1].enabled = false;
     }
   }
+  mm.sync();
 }
 
 void EnableItem(MenuHandle theMenu, uint16_t item) {
@@ -208,6 +210,7 @@ void EnableItem(MenuHandle theMenu, uint16_t item) {
       menu->items[item - 1].enabled = true;
     }
   }
+  mm.sync();
 }
 
 void CheckItem(MenuHandle theMenu, uint16_t item, Boolean checked) {
@@ -217,6 +220,7 @@ void CheckItem(MenuHandle theMenu, uint16_t item, Boolean checked) {
   } else {
     menu->items.at(item - 1).checked = checked;
   }
+  mm.sync();
 }
 
 void AppendMenu(MenuHandle menu, ConstStr255Param data) {
