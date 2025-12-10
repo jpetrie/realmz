@@ -382,13 +382,16 @@ if(APPLE)
     # We dynamically link to the SDL* libraries (plus an asan lib that clang links against),
     # so we need to ensure that they get included in the bundle. MacOS supports rpaths, which
     # specify directly in the Mach-0 executable the directories in which runtime libraries may
-    # be found. I can't seem to figure out how to manipulate the rpath entries via CMake, which
-    # is complicated even further by the fact that the rpath should change between the build and
-    # install targets. However, the @executable_path symbolic directory always seems to be configured
-    # as an rpath, so if we install these runtime dylibs alongside the Realmz executable in 
-    # Contents/MacOS in the bundle, it should work.
+    # be found. By default, LIBRARY artifacts will be installed to Resources/lib in the bundle,
+    # so we set the RPATH below to this directory.
     install(IMPORTED_RUNTIME_ARTIFACTS Realmz RUNTIME_DEPENDENCY_SET runtimeDeps)
-    install(RUNTIME_DEPENDENCY_SET runtimeDeps LIBRARY DESTINATION "../MacOS")
+    install(RUNTIME_DEPENDENCY_SET runtimeDeps LIBRARY)
+
+    # Manually set the rpath to avoid CMake automatically adding hardcoded build machine paths
+    set_target_properties(Realmz PROPERTIES
+        INSTALL_RPATH "@executable_path/../Resources/lib"
+        BUILD_WITH_INSTALL_RPATH TRUE
+    )
 elseif(WIN32)
     install(TARGETS Realmz DESTINATION ${CMAKE_INSTALL_BINDIR})
     install(FILES ${RESOURCE_FILES} DESTINATION ${CMAKE_INSTALL_BINDIR})
