@@ -40,11 +40,6 @@ message(STATUS "CMake found resource_file at: ${resource_file_DIR}")
 find_package(ZLIB REQUIRED)
 message(STATUS "CMake found zlib at: ${zlib_DIR}")
 
-# Debug flag - REALMZ_DEBUG is defined if the build type is Debug or RelWithDebInfo
-if($<CONFIG:Debug,RelWithDebInfo>)
-    add_compile_definitions(REALMZ_DEBUG)
-endif()
-
 # For cross-compilation to Windows
 if(WIN32)
     link_directories($ENV{HOME}/mingw-install/lib ${CMAKE_CURRENT_BINARY_DIR}/vendored/SDL_ttf/external/freetype)
@@ -299,6 +294,12 @@ set_source_files_properties(${CHARACTER_RESOURCE_FILES} PROPERTIES
 # be shared as if they were a library to enable test executables
 add_library(realmz_lib STATIC ${SOURCES})
 target_compile_definitions(realmz_lib PUBLIC REALMZ_COCOA=1)
+if(${CMAKE_BUILD_TYPE} STREQUAL "Debug" OR ${CMAKE_BUILD_TYPE} STREQUAL RelWithDebInfo)
+    message("-- REALMZ_DEBUG is enabled because CMAKE_BUILD_TYPE is \"${CMAKE_BUILD_TYPE}\"")
+    target_compile_definitions(realmz_lib PUBLIC REALMZ_DEBUG=1)
+else()
+    message("-- REALMZ_DEBUG is disabled because CMAKE_BUILD_TYPE is \"${CMAKE_BUILD_TYPE}\"")
+endif()
 target_compile_options(realmz_lib PUBLIC -fpascal-strings)
 target_include_directories(realmz_lib PUBLIC ${SDL3_INCLUDE_DIRS} src src/realmz_orig)
 
@@ -404,6 +405,27 @@ set_source_files_properties(${CHARACTER_DATA_FILES} PROPERTIES
 
 if(APPLE)
     install(TARGETS Realmz BUNDLE DESTINATION ".")
+
+    # Install data files to <bundle_root>/Resources
+    # install(FILES ${RESOURCE_FILES} DESTINATION ".")
+    # install(FILES ${DATA_RESOURCE_FILES} DESTINATION "Data Files")
+    # install(FILES ${CHARACTER_RESOURCE_FILES} DESTINATION "Character Files")
+    # install(DIRECTORY "${CMAKE_SOURCE_DIR}/base/Realmz/Scenarios" DESTINATION ".")
+    # install(FILES ${CHARACTER_DATA_FILES} DESTINATION "Character Files")
+    #
+    # # We dynamically link to the SDL* libraries (plus an asan lib that clang links against),
+    # # so we need to ensure that they get included in the bundle. MacOS supports rpaths, which
+    # # specify directly in the Mach-0 executable the directories in which runtime libraries may
+    # # be found. By default, LIBRARY artifacts will be installed to Resources/lib in the bundle,
+    # # so we set the RPATH below to this directory.
+    # install(IMPORTED_RUNTIME_ARTIFACTS Realmz RUNTIME_DEPENDENCY_SET runtimeDeps)
+    # install(RUNTIME_DEPENDENCY_SET runtimeDeps LIBRARY)
+
+    # Manually set the rpath to avoid CMake automatically adding hardcoded build machine paths
+    # set_target_properties(Realmz PROPERTIES
+    #     INSTALL_RPATH "@executable_path/../Resources/lib"
+    #     BUILD_WITH_INSTALL_RPATH TRUE
+    # )
 elseif(WIN32)
     install(TARGETS Realmz DESTINATION ${CMAKE_INSTALL_BINDIR})
     install(FILES ${RESOURCE_FILES} DESTINATION ${CMAKE_INSTALL_BINDIR})
